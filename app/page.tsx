@@ -21,6 +21,8 @@ export default function HomePage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [instagram, setInstagram] = useState("");
+  const [atividade, setAtividade] = useState("");
+  const [atividadeDescricao, setAtividadeDescricao] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -38,6 +40,10 @@ export default function HomePage() {
       toast.error("Esse email não parece válido. Dá uma olhadinha.");
       return;
     }
+    if (!atividade.trim() || !atividadeDescricao.trim()) {
+      toast.error("Me conta também sua atividade e o que você resolve.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -49,6 +55,8 @@ export default function HomePage() {
           name: name.trim(),
           email: email.trim().toLowerCase(),
           instagram: ig,
+          atividade: atividade.trim(),
+          atividade_descricao: atividadeDescricao.trim(),
         }),
       });
 
@@ -131,6 +139,38 @@ export default function HomePage() {
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
                   disabled={loading}
+                />
+              </div>
+
+              <Separator />
+
+              <p className="text-sm text-muted-foreground">
+                Pra IA te conhecer antes de gerar qualquer coisa:
+              </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="atividade">O que você faz?</Label>
+                <Input
+                  id="atividade"
+                  placeholder="Ex: Consultor de vendas B2B"
+                  value={atividade}
+                  onChange={(e) => setAtividade(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="atividade_descricao">
+                  Em 1-2 linhas, o que você resolve pros seus clientes?
+                </Label>
+                <textarea
+                  id="atividade_descricao"
+                  rows={3}
+                  placeholder="Ex: Ajudo empresas de SaaS a escalarem prospecção enterprise usando discovery em 3 camadas."
+                  value={atividadeDescricao}
+                  onChange={(e) => setAtividadeDescricao(e.target.value)}
+                  disabled={loading}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 

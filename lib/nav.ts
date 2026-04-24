@@ -30,8 +30,8 @@ export function buildNav(progress: Partial<Progress>): NavGroup[] {
       ],
     },
     {
-      title: "Conteúdo",
-      icon: "✨",
+      title: "Estratégia",
+      icon: "🎯",
       items: [
         {
           key: "voz",
@@ -40,39 +40,52 @@ export function buildNav(progress: Partial<Progress>): NavGroup[] {
           href: "/conteudo/voz",
         },
         {
+          key: "icp",
+          title: "ICP",
+          icon: "🎯",
+          href: "/produto/icp",
+          locked: !progress.voz,
+        },
+        {
           key: "posicionamento",
           title: "Posicionamento",
           icon: "📍",
           href: "/conteudo/posicionamento",
-          comingSoon: true,
+          locked: !progress.voz || !progress.icp,
         },
         {
           key: "territorio",
           title: "Território",
           icon: "🗺️",
           href: "/conteudo/territorio",
-          comingSoon: true,
+          locked: !progress.posicionamento,
         },
+      ],
+    },
+    {
+      title: "Conteúdo",
+      icon: "✨",
+      items: [
         {
           key: "editorias",
           title: "Editorias",
           icon: "📚",
           href: "/conteudo/editorias",
-          comingSoon: true,
+          locked: !progress.territorio,
         },
         {
           key: "ideias",
           title: "Ideias",
           icon: "💡",
           href: "/conteudo/ideias",
-          locked: !progress.voz,
+          locked: !progress.editorias,
         },
         {
           key: "monoflow",
           title: "Monoflow",
           icon: "🔄",
           href: "/conteudo/monoflow",
-          locked: !progress.voz,
+          locked: !progress.icp,
         },
       ],
     },
@@ -80,12 +93,6 @@ export function buildNav(progress: Partial<Progress>): NavGroup[] {
       title: "Produto",
       icon: "📦",
       items: [
-        {
-          key: "icp",
-          title: "ICP",
-          icon: "🎯",
-          href: "/produto/icp",
-        },
         {
           key: "oferta",
           title: "Oferta",

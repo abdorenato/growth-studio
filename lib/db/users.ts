@@ -14,23 +14,40 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   return data as User;
 }
 
+export async function getUserById(id: string): Promise<User | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  return (data as User) || null;
+}
+
 export async function registerLead(
   name: string,
   email: string,
-  instagram: string
+  instagram: string,
+  atividade = "",
+  atividadeDescricao = ""
 ): Promise<User | null> {
   const supabase = await createClient();
   const normalizedEmail = email.toLowerCase().trim();
 
   const existing = await getUserByEmail(normalizedEmail);
   if (existing) {
+    const patch: Record<string, unknown> = {
+      name,
+      instagram,
+      ultima_atividade: new Date().toISOString(),
+    };
+    // Só sobrescreve se o novo valor veio preenchido (não apaga dado anterior)
+    if (atividade.trim()) patch.atividade = atividade;
+    if (atividadeDescricao.trim()) patch.atividade_descricao = atividadeDescricao;
+
     const { data } = await supabase
       .from("users")
-      .update({
-        name,
-        instagram,
-        ultima_atividade: new Date().toISOString(),
-      })
+      .update(patch)
       .eq("id", existing.id)
       .select()
       .single();
@@ -43,6 +60,8 @@ export async function registerLead(
       email: normalizedEmail,
       name,
       instagram,
+      atividade: atividade || null,
+      atividade_descricao: atividadeDescricao || null,
     })
     .select()
     .single();

@@ -121,7 +121,7 @@ function computeNextStep(progress: Record<string, boolean | undefined>): NextSte
       icon: "📍",
       title: "Posicionamento",
       description: "Vou te ajudar a cravar sua frase de posicionamento.",
-      comingSoon: true,
+      href: "/conteudo/posicionamento",
     };
   }
   if (!progress.territorio) {
@@ -129,15 +129,15 @@ function computeNextStep(progress: Record<string, boolean | undefined>): NextSte
       icon: "🗺️",
       title: "Território",
       description: "Definir o território principal de conteúdo.",
-      comingSoon: true,
+      href: "/conteudo/territorio",
     };
   }
   if (!progress.editorias) {
     return {
       icon: "📚",
       title: "Editorias",
-      description: "Macro-temas do seu território.",
-      comingSoon: true,
+      description: "5 pilares recorrentes — um pra cada objetivo estratégico.",
+      href: "/conteudo/editorias",
     };
   }
   if (!progress.ideias) {
@@ -148,10 +148,19 @@ function computeNextStep(progress: Record<string, boolean | undefined>): NextSte
       href: "/conteudo/ideias",
     };
   }
+  if (!progress.conteudos) {
+    return {
+      icon: "🔄",
+      title: "Monoflow",
+      description: "Transformar ideias em conteúdos pra todas as plataformas.",
+      href: "/conteudo/monoflow",
+    };
+  }
   return {
-    icon: "🔄",
-    title: "Monoflow",
-    description: "Transformar ideias em conteúdos pra todas as plataformas.",
-    href: "/conteudo/monoflow",
+    icon: "💰",
+    title: "Oferta (opcional)",
+    description:
+      "Quando quiser lançar algo, cadastra aqui pra atrelar em conteúdos de venda.",
+    href: "/produto/oferta",
   };
 }

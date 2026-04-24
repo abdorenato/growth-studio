@@ -6,6 +6,7 @@ import { Lock, LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { OfertaFocoSelector } from "@/components/layout/oferta-foco-selector";
 import { useUserStore } from "@/hooks/use-user-store";
 import { buildNav } from "@/lib/nav";
 import { cn, firstName } from "@/lib/utils";
@@ -45,6 +46,10 @@ export function Sidebar() {
           <div className="text-xs text-muted-foreground">@{user.instagram}</div>
         )}
       </div>
+
+      <Separator />
+
+      <OfertaFocoSelector />
 
       <Separator />
 

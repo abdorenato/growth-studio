@@ -3,6 +3,9 @@ export type User = {
   email: string;
   name: string;
   instagram?: string;
+  atividade?: string;
+  atividade_descricao?: string;
+  oferta_em_foco_id?: string | null;
   created_at?: string;
 };
 
@@ -46,7 +49,7 @@ export type Progress = {
 };
 
 export type ICP = {
-  id?: number;
+  id?: number | string;
   user_id?: string;
   name: string;
   niche: string;
@@ -63,9 +66,9 @@ export type ICP = {
 };
 
 export type Offer = {
-  id?: number;
+  id?: number | string;
   user_id?: string;
-  icp_id: number;
+  icp_id: number | string;
   name: string;
   dream: string;
   success_proofs: string[];

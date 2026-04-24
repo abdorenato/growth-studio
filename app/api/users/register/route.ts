@@ -7,6 +7,8 @@ const BodySchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   instagram: z.string().optional().default(""),
+  atividade: z.string().optional().default(""),
+  atividade_descricao: z.string().optional().default(""),
 });
 
 export async function POST(req: Request) {
@@ -17,7 +19,9 @@ export async function POST(req: Request) {
     const user = await registerLead(
       parsed.name,
       parsed.email,
-      parsed.instagram || ""
+      parsed.instagram || "",
+      parsed.atividade || "",
+      parsed.atividade_descricao || ""
     );
 
     if (!user) {
