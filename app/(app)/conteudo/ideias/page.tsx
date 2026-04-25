@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { useUserStore } from "@/hooks/use-user-store";
 import { OBJETIVOS, type TipoObjetivo } from "@/lib/editorias/constants";
+import { ESTAGIOS, ESTAGIO_ORDEM, type Estagio } from "@/lib/estagios/constants";
 import type { IdeaData } from "@/types";
 
 const STYLE_LABELS: Record<string, string> = {
@@ -154,6 +155,7 @@ export default function IdeiasPage() {
       angle: ideia.angle,
       carousel_style: ideia.carousel_style,
       target_emotion: ideia.target_emotion,
+      target_stage: ideia.target_stage,
     });
   };
 
@@ -203,6 +205,7 @@ export default function IdeiasPage() {
       angle: idea.angle || "",
       style: idea.carousel_style || "",
       editoriaId: editoriaId || "",
+      stage: idea.target_stage || "",
     });
     toast.success(`Ideia selecionada: "${idea.topic}"`);
     router.push(`/conteudo/monoflow?${params.toString()}`);
@@ -426,18 +429,37 @@ export default function IdeiasPage() {
                           ))}
                         </select>
                       </Field>
-                      <Field label="Emoção">
-                        <Input
-                          value={editDraft.target_emotion || ""}
+                      <Field label="Estágio (Eugene Schwartz)">
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={editDraft.target_stage || ""}
                           onChange={(e) =>
                             setEditDraft({
                               ...editDraft,
-                              target_emotion: e.target.value,
+                              target_stage: e.target.value,
                             })
                           }
-                        />
+                        >
+                          <option value="">—</option>
+                          {ESTAGIO_ORDEM.map((s) => (
+                            <option key={s} value={s}>
+                              {ESTAGIOS[s].icon} {ESTAGIOS[s].label}
+                            </option>
+                          ))}
+                        </select>
                       </Field>
                     </div>
+                    <Field label="Emoção alvo">
+                      <Input
+                        value={editDraft.target_emotion || ""}
+                        onChange={(e) =>
+                          setEditDraft({
+                            ...editDraft,
+                            target_emotion: e.target.value,
+                          })
+                        }
+                      />
+                    </Field>
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="ghost" onClick={cancelEdit}>
                         <X className="mr-1 h-3 w-3" /> Cancelar
@@ -451,11 +473,20 @@ export default function IdeiasPage() {
                   /* MODO VIEW */
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {idea.carousel_style && (
                           <span className="text-xs bg-secondary px-2 py-0.5 rounded">
                             {STYLE_LABELS[idea.carousel_style] ||
                               idea.carousel_style}
+                          </span>
+                        )}
+                        {idea.target_stage && ESTAGIOS[idea.target_stage as Estagio] && (
+                          <span
+                            className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded inline-flex items-center gap-1"
+                            title={ESTAGIOS[idea.target_stage as Estagio].desc}
+                          >
+                            {ESTAGIOS[idea.target_stage as Estagio].icon}{" "}
+                            {ESTAGIOS[idea.target_stage as Estagio].label}
                           </span>
                         )}
                       </div>

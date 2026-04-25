@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       numSlides,
       atrelarOferta,
       editoriaId,
+      targetStage,
     } = await req.json();
 
     if (!userId || !icpId || !motherText || !platform) {
@@ -51,24 +52,25 @@ export async function POST(req: Request) {
     }
 
     let prompt;
+    const stage = targetStage || null;
     switch (platform as Platform) {
       case "reels":
-        prompt = reelsPrompt(ctx, motherText);
+        prompt = reelsPrompt(ctx, motherText, stage);
         break;
       case "post":
-        prompt = postPrompt(ctx, motherText);
+        prompt = postPrompt(ctx, motherText, stage);
         break;
       case "carousel":
-        prompt = carouselPrompt(ctx, motherText, numSlides || 7);
+        prompt = carouselPrompt(ctx, motherText, numSlides || 7, stage);
         break;
       case "stories":
-        prompt = storiesPrompt(ctx, motherText);
+        prompt = storiesPrompt(ctx, motherText, stage);
         break;
       case "linkedin":
-        prompt = linkedinPrompt(ctx, motherText);
+        prompt = linkedinPrompt(ctx, motherText, stage);
         break;
       case "tiktok":
-        prompt = tiktokPrompt(ctx, motherText);
+        prompt = tiktokPrompt(ctx, motherText, stage);
         break;
       default:
         return NextResponse.json(

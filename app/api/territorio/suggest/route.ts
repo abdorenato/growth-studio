@@ -5,28 +5,47 @@ import { createClient } from "@/lib/supabase/server";
 import { getICP } from "@/lib/db/icp";
 import { getUserById } from "@/lib/db/users";
 import {
-  suggestTemasPrompt,
+  suggestDominiosPrompt,
+  suggestAncorasPrompt,
   generateManifestoPrompt,
   suggestFronteirasPrompt,
+  suggestAreasAtuacaoPrompt,
 } from "@/lib/prompts/territorio";
 import type { LenteKey } from "@/lib/territorio/constants";
 
 type Body =
-  | { kind: "tema"; userId: string; icpId: string }
+  | { kind: "dominio"; userId: string; icpId: string }
+  | {
+      kind: "ancora";
+      userId: string;
+      icpId: string;
+      dominio: string;
+      lente: LenteKey;
+    }
   | {
       kind: "manifesto";
       userId: string;
       icpId: string;
-      tema: string;
+      dominio: string;
+      ancora: string;
       lente: LenteKey;
     }
   | {
       kind: "fronteiras";
       userId: string;
       icpId: string;
-      tema: string;
+      dominio: string;
+      ancora: string;
       lente: LenteKey;
-      manifesto: string;
+      tese: string;
+    }
+  | {
+      kind: "areas";
+      userId: string;
+      icpId: string;
+      dominio: string;
+      ancora: string;
+      tese: string;
     };
 
 export async function POST(req: Request) {
@@ -35,11 +54,15 @@ export async function POST(req: Request) {
     const { userId, icpId } = body;
 
     if (!userId || !icpId) {
-      return NextResponse.json({ error: "userId e icpId obrigatórios" }, { status: 400 });
+      return NextResponse.json(
+        { error: "userId e icpId obrigatórios" },
+        { status: 400 }
+      );
     }
 
     const [icp, creator] = await Promise.all([getICP(icpId), getUserById(userId)]);
-    if (!icp) return NextResponse.json({ error: "ICP não encontrado" }, { status: 404 });
+    if (!icp)
+      return NextResponse.json({ error: "ICP não encontrado" }, { status: 404 });
 
     const supabase = await createClient();
     const { data: voz } = await supabase
@@ -54,12 +77,22 @@ export async function POST(req: Request) {
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (body.kind === "tema") {
-      const { system, user } = suggestTemasPrompt(
+    const mapaVoz = voz?.mapa_voz || null;
+
+    if (body.kind === "dominio") {
+      const { system, user } = suggestDominiosPrompt(creator, icp, mapaVoz, pos);
+      const text = await callClaude(system, user, 1500);
+      return NextResponse.json(parseJSON(text));
+    }
+
+    if (body.kind === "ancora") {
+      const { system, user } = suggestAncorasPrompt(
         creator,
         icp,
-        voz?.mapa_voz || null,
-        pos || null
+        mapaVoz,
+        pos,
+        body.dominio,
+        body.lente
       );
       const text = await callClaude(system, user, 1500);
       return NextResponse.json(parseJSON(text));
@@ -69,9 +102,10 @@ export async function POST(req: Request) {
       const { system, user } = generateManifestoPrompt(
         creator,
         icp,
-        voz?.mapa_voz || null,
-        pos || null,
-        body.tema,
+        mapaVoz,
+        pos,
+        body.dominio,
+        body.ancora,
         body.lente
       );
       const text = await callClaude(system, user, 1500);
@@ -82,11 +116,26 @@ export async function POST(req: Request) {
       const { system, user } = suggestFronteirasPrompt(
         creator,
         icp,
-        voz?.mapa_voz || null,
-        pos || null,
-        body.tema,
+        mapaVoz,
+        pos,
+        body.dominio,
+        body.ancora,
         body.lente,
-        body.manifesto
+        body.tese
+      );
+      const text = await callClaude(system, user, 1500);
+      return NextResponse.json(parseJSON(text));
+    }
+
+    if (body.kind === "areas") {
+      const { system, user } = suggestAreasAtuacaoPrompt(
+        creator,
+        icp,
+        mapaVoz,
+        pos,
+        body.dominio,
+        body.ancora,
+        body.tese
       );
       const text = await callClaude(system, user, 1500);
       return NextResponse.json(parseJSON(text));

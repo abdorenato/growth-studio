@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -27,22 +27,30 @@ import { useUserStore } from "@/hooks/use-user-store";
 import { LENTES, type LenteKey } from "@/lib/territorio/constants";
 
 type ICPRow = { id: string; name: string; niche: string };
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 type State = {
   icp_id: string;
-  tema: string;
+  dominio: string;
+  ancora_mental: string;
   lente: LenteKey | "";
-  manifesto: string;
+  tese: string;
+  expansao: string;
   fronteiras: string[];
+  fronteiras_positivas: string[];
+  areas_atuacao: string[];
 };
 
 const EMPTY: State = {
   icp_id: "",
-  tema: "",
+  dominio: "",
+  ancora_mental: "",
   lente: "",
-  manifesto: "",
+  tese: "",
+  expansao: "",
   fronteiras: [],
+  fronteiras_positivas: [],
+  areas_atuacao: [],
 };
 
 export default function TerritorioPage() {
@@ -55,15 +63,14 @@ export default function TerritorioPage() {
   const [icps, setIcps] = useState<ICPRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(true);
-
-  const [sugestoesTema, setSugestoesTema] = useState<
-    { tema: string; por_que: string }[]
-  >([]);
-  const [sugestoesManifesto, setSugestoesManifesto] = useState<
-    { manifesto: string; por_que: string }[]
-  >([]);
-  const [sugestoesFronteiras, setSugestoesFronteiras] = useState<string[]>([]);
   const [posResultado, setPosResultado] = useState("");
+
+  // Sugestões
+  const [sugDominios, setSugDominios] = useState<{ dominio: string; por_que: string }[]>([]);
+  const [sugAncoras, setSugAncoras] = useState<{ ancora: string; por_que: string }[]>([]);
+  const [sugManifestos, setSugManifestos] = useState<
+    { tese: string; expansao: string; por_que: string }[]
+  >([]);
 
   useEffect(() => {
     (async () => {
@@ -83,14 +90,18 @@ export default function TerritorioPage() {
         if (ter) {
           setState({
             icp_id: ic[0]?.id || "",
-            tema: ter.nome || "",
+            dominio: ter.dominio || "",
+            ancora_mental: ter.ancora_mental || "",
             lente: ter.lente || "",
-            manifesto: ter.manifesto || "",
+            tese: ter.tese || ter.manifesto || "",
+            expansao: ter.expansao || "",
             fronteiras: ter.fronteiras || [],
+            fronteiras_positivas: ter.fronteiras_positivas || [],
+            areas_atuacao: ter.areas_atuacao || [],
           });
-          if (ter.nome && ter.manifesto) {
+          if (ter.dominio && ter.ancora_mental) {
             updateProgress("territorio", true);
-            setStep(5);
+            setStep(7);
           }
         } else if (ic[0]) {
           setState((s) => ({ ...s, icp_id: ic[0].id }));
@@ -102,22 +113,19 @@ export default function TerritorioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id]);
 
-  const suggestTema = async () => {
+  // ── Sugestões da IA ─────
+
+  const suggestDominio = async () => {
     if (!state.icp_id) return toast.error("Selecione um ICP.");
     setLoading(true);
     try {
       const resp = await fetch("/api/territorio/suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "tema",
-          userId: user.id,
-          icpId: state.icp_id,
-        }),
+        body: JSON.stringify({ kind: "dominio", userId: user.id, icpId: state.icp_id }),
       });
-      if (!resp.ok) throw new Error();
       const data = await resp.json();
-      setSugestoesTema(data.options || []);
+      setSugDominios(data.options || []);
     } catch {
       toast.error("Erro ao sugerir.");
     } finally {
@@ -125,8 +133,32 @@ export default function TerritorioPage() {
     }
   };
 
-  const generateManifestos = async () => {
-    if (!state.tema || !state.lente) return;
+  const suggestAncora = async () => {
+    if (!state.dominio || !state.lente) return;
+    setLoading(true);
+    try {
+      const resp = await fetch("/api/territorio/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "ancora",
+          userId: user.id,
+          icpId: state.icp_id,
+          dominio: state.dominio,
+          lente: state.lente,
+        }),
+      });
+      const data = await resp.json();
+      setSugAncoras(data.options || []);
+    } catch {
+      toast.error("Erro.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const suggestManifesto = async () => {
+    if (!state.dominio || !state.ancora_mental || !state.lente) return;
     setLoading(true);
     try {
       const resp = await fetch("/api/territorio/suggest", {
@@ -136,28 +168,26 @@ export default function TerritorioPage() {
           kind: "manifesto",
           userId: user.id,
           icpId: state.icp_id,
-          tema: state.tema,
+          dominio: state.dominio,
+          ancora: state.ancora_mental,
           lente: state.lente,
         }),
       });
-      if (!resp.ok) throw new Error();
       const data = await resp.json();
-      setSugestoesManifesto(data.options || []);
+      setSugManifestos(data.options || []);
       if (data.options?.[data.recomendada || 0]) {
-        setState((s) => ({
-          ...s,
-          manifesto: data.options[data.recomendada || 0].manifesto,
-        }));
+        const r = data.options[data.recomendada || 0];
+        setState((s) => ({ ...s, tese: r.tese, expansao: r.expansao }));
       }
     } catch {
-      toast.error("Erro ao gerar manifestos.");
+      toast.error("Erro.");
     } finally {
       setLoading(false);
     }
   };
 
   const suggestFronteiras = async () => {
-    if (!state.tema || !state.lente || !state.manifesto) return;
+    if (!state.tese) return;
     setLoading(true);
     try {
       const resp = await fetch("/api/territorio/suggest", {
@@ -167,19 +197,45 @@ export default function TerritorioPage() {
           kind: "fronteiras",
           userId: user.id,
           icpId: state.icp_id,
-          tema: state.tema,
+          dominio: state.dominio,
+          ancora: state.ancora_mental,
           lente: state.lente,
-          manifesto: state.manifesto,
+          tese: state.tese,
         }),
       });
-      if (!resp.ok) throw new Error();
       const data = await resp.json();
-      setSugestoesFronteiras(data.options || []);
-      if ((data.options || []).length > 0 && state.fronteiras.length === 0) {
-        setState((s) => ({ ...s, fronteiras: data.options }));
-      }
+      setState((s) => ({
+        ...s,
+        fronteiras: data.negativas || [],
+        fronteiras_positivas: data.positivas || [],
+      }));
     } catch {
-      toast.error("Erro ao sugerir fronteiras.");
+      toast.error("Erro.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const suggestAreas = async () => {
+    if (!state.tese) return;
+    setLoading(true);
+    try {
+      const resp = await fetch("/api/territorio/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "areas",
+          userId: user.id,
+          icpId: state.icp_id,
+          dominio: state.dominio,
+          ancora: state.ancora_mental,
+          tese: state.tese,
+        }),
+      });
+      const data = await resp.json();
+      setState((s) => ({ ...s, areas_atuacao: data.areas || [] }));
+    } catch {
+      toast.error("Erro.");
     } finally {
       setLoading(false);
     }
@@ -193,16 +249,21 @@ export default function TerritorioPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.id,
-          nome: state.tema,
+          dominio: state.dominio,
+          ancora_mental: state.ancora_mental,
           lente: state.lente,
-          manifesto: state.manifesto,
+          tese: state.tese,
+          expansao: state.expansao,
+          manifesto: state.tese, // legado
           fronteiras: state.fronteiras,
+          fronteiras_positivas: state.fronteiras_positivas,
+          areas_atuacao: state.areas_atuacao,
         }),
       });
       if (!resp.ok) throw new Error();
       updateProgress("territorio", true);
       toast.success("🎉 Território salvo!");
-      setStep(5);
+      setStep(7);
     } catch {
       toast.error("Erro ao salvar.");
     } finally {
@@ -212,12 +273,13 @@ export default function TerritorioPage() {
 
   const renderURL = (slide: number) =>
     `/api/territorio/render?${new URLSearchParams({
-      tema: state.tema,
+      ancora: state.ancora_mental,
+      tese: state.tese,
+      expansao: state.expansao,
       lente: state.lente || "",
-      manifesto: state.manifesto,
-      fronteiras: JSON.stringify(state.fronteiras),
+      negativas: JSON.stringify(state.fronteiras),
+      positivas: JSON.stringify(state.fronteiras_positivas),
       handle: user.instagram || "",
-      resultado: posResultado,
       slide: String(slide),
     }).toString()}`;
 
@@ -244,7 +306,7 @@ export default function TerritorioPage() {
     }
   };
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ─────────────────────────────────────────────────────────────────────────
 
   if (loadingInitial) {
     return (
@@ -261,7 +323,7 @@ export default function TerritorioPage() {
         <Card>
           <CardContent className="p-10 text-center">
             <p className="text-muted-foreground mb-4">
-              Você precisa cadastrar um <b>ICP</b> primeiro.
+              Cadastre um <b>ICP</b> primeiro.
             </p>
             <Button asChild>
               <a href="/produto/icp">Criar ICP</a>
@@ -277,43 +339,44 @@ export default function TerritorioPage() {
       <div>
         <h1 className="text-3xl font-bold">🗺️ Território</h1>
         <p className="text-muted-foreground mt-1">
-          O universo de significado que você vai ocupar com autoridade.
+          O espaço mental que sua marca vai dominar.
         </p>
       </div>
 
       <Stepper current={step} />
-
       <Separator />
 
-      {/* ETAPA 1: TEMA */}
+      {/* ETAPA 1: DOMÍNIO */}
       {step === 1 && (
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h2 className="text-xl font-semibold">1. Qual é o TEMA do seu território?</h2>
+            <h2 className="text-xl font-semibold">
+              1. Qual é o DOMÍNIO técnico?
+            </h2>
             <p className="text-sm text-muted-foreground">
-              O domínio amplo. Amplo o suficiente pra falar por anos. Estreito o
-              suficiente pra virar autoridade.
+              Descritivo: o nicho que você atua. Ex: <i>&ldquo;Vendas Consultivas B2B&rdquo;</i>.
+              Daqui a pouco transformamos isso numa âncora mental memorável.
             </p>
 
-            <Button variant="outline" onClick={suggestTema} disabled={loading}>
+            <Button variant="outline" onClick={suggestDominio} disabled={loading}>
               <Sparkles className="mr-2 h-4 w-4" />
-              {loading ? "Gerando..." : "Sugerir 3 temas com IA"}
+              {loading ? "Gerando..." : "Sugerir 3 domínios"}
             </Button>
 
-            {sugestoesTema.length > 0 && (
+            {sugDominios.length > 0 && (
               <div className="space-y-2">
-                {sugestoesTema.map((s, i) => (
+                {sugDominios.map((s, i) => (
                   <Card
                     key={i}
                     className={`cursor-pointer transition ${
-                      state.tema === s.tema
+                      state.dominio === s.dominio
                         ? "border-primary ring-2 ring-primary/20"
                         : "hover:border-primary/50"
                     }`}
-                    onClick={() => setState((st) => ({ ...st, tema: s.tema }))}
+                    onClick={() => setState((st) => ({ ...st, dominio: s.dominio }))}
                   >
                     <CardContent className="p-4 space-y-1">
-                      <p className="font-semibold text-lg">{s.tema}</p>
+                      <p className="font-semibold">{s.dominio}</p>
                       <p className="text-xs text-muted-foreground">{s.por_que}</p>
                     </CardContent>
                   </Card>
@@ -321,19 +384,16 @@ export default function TerritorioPage() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Pencil className="h-3 w-3" /> Ou escreva o seu
-              </Label>
+            <Field label="Ou escreva o seu" hint="Pencil">
               <Input
                 placeholder="Ex: Vendas Consultivas B2B"
-                value={state.tema}
-                onChange={(e) => setState((s) => ({ ...s, tema: e.target.value }))}
+                value={state.dominio}
+                onChange={(e) => setState((s) => ({ ...s, dominio: e.target.value }))}
               />
-            </div>
+            </Field>
 
             <div className="flex justify-end">
-              <Button onClick={() => setStep(2)} disabled={!state.tema.trim()}>
+              <Button onClick={() => setStep(2)} disabled={!state.dominio.trim()}>
                 Continuar <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -345,9 +405,11 @@ export default function TerritorioPage() {
       {step === 2 && (
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h2 className="text-xl font-semibold">2. Qual LENTE você usa pra ver esse tema?</h2>
+            <h2 className="text-xl font-semibold">
+              2. Qual LENTE você usa pra ver o domínio?
+            </h2>
             <p className="text-sm text-muted-foreground">
-              A lente é o modo único de enxergar. Define como tudo que você criar vai ter um sabor próprio.
+              É como a sua marca enxerga. Define o sabor único da comunicação.
             </p>
 
             <div className="grid md:grid-cols-2 gap-3">
@@ -361,7 +423,7 @@ export default function TerritorioPage() {
                   }`}
                   onClick={() => {
                     setState((s) => ({ ...s, lente: key as LenteKey }));
-                    setSugestoesManifesto([]);
+                    setSugAncoras([]);
                   }}
                 >
                   <CardContent className="p-5 space-y-2">
@@ -378,52 +440,47 @@ export default function TerritorioPage() {
               ))}
             </div>
 
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(1)}>
-                <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-              </Button>
-              <Button onClick={() => setStep(3)} disabled={!state.lente}>
-                Continuar <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
+            <Nav onBack={() => setStep(1)} onNext={() => setStep(3)} canNext={!!state.lente} />
           </CardContent>
         </Card>
       )}
 
-      {/* ETAPA 3: MANIFESTO */}
+      {/* ETAPA 3: ÂNCORA MENTAL */}
       {step === 3 && (
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h2 className="text-xl font-semibold">3. Seu MANIFESTO</h2>
+            <h2 className="text-xl font-semibold">3. ÂNCORA MENTAL</h2>
             <p className="text-sm text-muted-foreground">
-              Frase-bandeira que carrega tema + lente. Vira bio, topo de post, resumo do que você defende.
+              1-3 palavras emocionais que comunicam o ESPAÇO MENTAL da marca. Não
+              descreve o que você faz — é a bandeira que entra na cabeça em 3
+              segundos.
             </p>
+            <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
+              💡 Exemplos: &ldquo;Vender é leitura&rdquo; · &ldquo;A arte de cobrar&rdquo; ·
+              &ldquo;Corpo é casa&rdquo;
+            </div>
 
-            <Button variant="outline" onClick={generateManifestos} disabled={loading}>
+            <Button variant="outline" onClick={suggestAncora} disabled={loading}>
               <Sparkles className="mr-2 h-4 w-4" />
-              {loading
-                ? "Gerando..."
-                : sugestoesManifesto.length > 0
-                  ? "Gerar outros manifestos"
-                  : "Gerar 3 manifestos com IA"}
+              {loading ? "Gerando..." : "Sugerir 5 âncoras"}
             </Button>
 
-            {sugestoesManifesto.length > 0 && (
-              <div className="space-y-2">
-                {sugestoesManifesto.map((s, i) => (
+            {sugAncoras.length > 0 && (
+              <div className="grid md:grid-cols-2 gap-2">
+                {sugAncoras.map((s, i) => (
                   <Card
                     key={i}
                     className={`cursor-pointer transition ${
-                      state.manifesto === s.manifesto
+                      state.ancora_mental === s.ancora
                         ? "border-primary ring-2 ring-primary/20"
                         : "hover:border-primary/50"
                     }`}
-                    onClick={() => setState((st) => ({ ...st, manifesto: s.manifesto }))}
+                    onClick={() =>
+                      setState((st) => ({ ...st, ancora_mental: s.ancora }))
+                    }
                   >
                     <CardContent className="p-4 space-y-1">
-                      <p className="font-medium italic text-lg">
-                        &ldquo;{s.manifesto}&rdquo;
-                      </p>
+                      <p className="font-bold text-lg">&ldquo;{s.ancora}&rdquo;</p>
                       <p className="text-xs text-muted-foreground">{s.por_que}</p>
                     </CardContent>
                   </Card>
@@ -431,93 +488,175 @@ export default function TerritorioPage() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Pencil className="h-3 w-3" /> Editar livremente
-              </Label>
-              <Textarea
-                rows={2}
-                placeholder="Seu manifesto em 1 frase forte..."
-                value={state.manifesto}
+            <Field label="Ou escreva a sua">
+              <Input
+                placeholder="Ex: Vender é leitura"
+                value={state.ancora_mental}
                 onChange={(e) =>
-                  setState((s) => ({ ...s, manifesto: e.target.value }))
+                  setState((s) => ({ ...s, ancora_mental: e.target.value }))
                 }
               />
-            </div>
+            </Field>
 
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(2)}>
-                <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-              </Button>
-              <Button onClick={() => setStep(4)} disabled={!state.manifesto.trim()}>
-                Continuar <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
+            <Nav
+              onBack={() => setStep(2)}
+              onNext={() => setStep(4)}
+              canNext={!!state.ancora_mental.trim()}
+            />
           </CardContent>
         </Card>
       )}
 
-      {/* ETAPA 4: FRONTEIRAS */}
+      {/* ETAPA 4: MANIFESTO (Tese + Expansão) */}
       {step === 4 && (
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h2 className="text-xl font-semibold">4. Suas FRONTEIRAS</h2>
+            <h2 className="text-xl font-semibold">4. MANIFESTO</h2>
             <p className="text-sm text-muted-foreground">
-              O que você <b>se recusa</b> a falar. Território sem fronteira vira genérico.
+              Tese (1 frase forte, idealmente contraintuitiva) + Expansão (1-2
+              frases que explicam).
+            </p>
+
+            <Button variant="outline" onClick={suggestManifesto} disabled={loading}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {loading
+                ? "Gerando..."
+                : sugManifestos.length > 0
+                  ? "Gerar outros manifestos"
+                  : "Gerar 3 manifestos"}
+            </Button>
+
+            {sugManifestos.length > 0 && (
+              <div className="space-y-2">
+                {sugManifestos.map((s, i) => (
+                  <Card
+                    key={i}
+                    className={`cursor-pointer transition ${
+                      state.tese === s.tese
+                        ? "border-primary ring-2 ring-primary/20"
+                        : "hover:border-primary/50"
+                    }`}
+                    onClick={() =>
+                      setState((st) => ({
+                        ...st,
+                        tese: s.tese,
+                        expansao: s.expansao,
+                      }))
+                    }
+                  >
+                    <CardContent className="p-4 space-y-1">
+                      <p className="font-bold italic">&ldquo;{s.tese}&rdquo;</p>
+                      <p className="text-sm text-muted-foreground">
+                        {s.expansao}
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-2">
+                        💭 {s.por_que}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <Field label="Tese (1 frase forte)">
+              <Textarea
+                rows={2}
+                value={state.tese}
+                onChange={(e) => setState((s) => ({ ...s, tese: e.target.value }))}
+                placeholder="Ex: Vender não é sorte. É leitura."
+              />
+            </Field>
+            <Field label="Expansão (1-2 frases que explicam)">
+              <Textarea
+                rows={2}
+                value={state.expansao}
+                onChange={(e) => setState((s) => ({ ...s, expansao: e.target.value }))}
+                placeholder="Ex: Quem fecha consistentemente lê padrões antes de pitch..."
+              />
+            </Field>
+
+            <Nav
+              onBack={() => setStep(3)}
+              onNext={() => setStep(5)}
+              canNext={!!state.tese.trim()}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ETAPA 5: FRONTEIRAS (negativas + positivas) */}
+      {step === 5 && (
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <h2 className="text-xl font-semibold">5. FRONTEIRAS</h2>
+            <p className="text-sm text-muted-foreground">
+              O que sua marca NÃO faz (recusa) e o que ela FAZ claramente. Em
+              paralelo, dão identidade completa.
             </p>
 
             <Button variant="outline" onClick={suggestFronteiras} disabled={loading}>
               <Sparkles className="mr-2 h-4 w-4" />
-              {loading ? "Gerando..." : "Sugerir 4 fronteiras com IA"}
+              {loading ? "Gerando..." : "Sugerir fronteiras com IA"}
             </Button>
 
-            <div className="space-y-2">
-              {state.fronteiras.map((f, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-destructive">🚫</span>
-                  <Input
-                    value={f}
-                    onChange={(e) => {
-                      const copy = [...state.fronteiras];
-                      copy[i] = e.target.value;
-                      setState((s) => ({ ...s, fronteiras: copy }));
-                    }}
-                  />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() =>
-                      setState((s) => ({
-                        ...s,
-                        fronteiras: s.fronteiras.filter((_, idx) => idx !== i),
-                      }))
-                    }
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  setState((s) => ({ ...s, fronteiras: [...s.fronteiras, ""] }))
+            <div className="grid md:grid-cols-2 gap-4">
+              <ListEditor
+                title="🚫 NÃO faz"
+                items={state.fronteiras}
+                onChange={(items) => setState((s) => ({ ...s, fronteiras: items }))}
+                color="destructive"
+              />
+              <ListEditor
+                title="✅ FAZ"
+                items={state.fronteiras_positivas}
+                onChange={(items) =>
+                  setState((s) => ({ ...s, fronteiras_positivas: items }))
                 }
-              >
-                <Plus className="mr-2 h-4 w-4" /> Adicionar fronteira
-              </Button>
+                color="primary"
+              />
             </div>
 
+            <Nav
+              onBack={() => setStep(4)}
+              onNext={() => setStep(6)}
+              canNext={
+                state.fronteiras.filter((f) => f.trim()).length > 0 ||
+                state.fronteiras_positivas.filter((f) => f.trim()).length > 0
+              }
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ETAPA 6: ÁREAS DE ATUAÇÃO */}
+      {step === 6 && (
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <h2 className="text-xl font-semibold">6. ÁREAS DE ATUAÇÃO</h2>
+            <p className="text-sm text-muted-foreground">
+              Onde o território vira NEGÓCIO. Aplicações práticas: processos,
+              sistemas, abordagens, serviços. (Não confundir com editorias ou
+              temas de conteúdo.)
+            </p>
+
+            <Button variant="outline" onClick={suggestAreas} disabled={loading}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {loading ? "Gerando..." : "Sugerir 5 áreas com IA"}
+            </Button>
+
+            <ListEditor
+              title="Áreas de atuação"
+              items={state.areas_atuacao}
+              onChange={(items) => setState((s) => ({ ...s, areas_atuacao: items }))}
+              color="primary"
+              placeholder="Ex: Diagnóstico de Maturidade de Compra"
+            />
+
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(3)}>
+              <Button variant="outline" onClick={() => setStep(5)}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
               </Button>
-              <Button
-                onClick={handleSave}
-                disabled={
-                  loading || state.fronteiras.filter((f) => f.trim()).length === 0
-                }
-              >
+              <Button onClick={handleSave} disabled={loading}>
                 <Check className="mr-2 h-4 w-4" />
                 {loading ? "Salvando..." : "Salvar território"}
               </Button>
@@ -526,66 +665,89 @@ export default function TerritorioPage() {
         </Card>
       )}
 
-      {/* ETAPA 5: REVISÃO */}
-      {step === 5 && (
+      {/* ETAPA 7: REVISÃO + CARROSSEL */}
+      {step === 7 && (
         <div className="space-y-6">
           <Card>
             <CardContent className="p-6 space-y-4">
               <h2 className="text-xl font-semibold">🎉 Seu Território</h2>
 
               <div className="space-y-3">
-                <div>
-                  <p className="text-xs uppercase text-muted-foreground tracking-wider">
-                    Tema
-                  </p>
-                  <p className="text-2xl font-bold">{state.tema}</p>
-                </div>
-
+                <Block label="Domínio" value={state.dominio} />
+                <Block
+                  label="Âncora mental"
+                  value={`"${state.ancora_mental}"`}
+                  bold
+                />
                 {state.lente && (
-                  <div>
-                    <p className="text-xs uppercase text-muted-foreground tracking-wider">
-                      Lente
-                    </p>
-                    <p className="text-lg">
-                      {LENTES[state.lente]?.icon} {LENTES[state.lente]?.label}
-                    </p>
-                  </div>
+                  <Block
+                    label="Lente"
+                    value={`${LENTES[state.lente]?.icon} ${LENTES[state.lente]?.label}`}
+                  />
+                )}
+                <Block label="Tese" value={`"${state.tese}"`} italic />
+                {state.expansao && (
+                  <Block label="Expansão" value={state.expansao} />
                 )}
 
-                <div>
-                  <p className="text-xs uppercase text-muted-foreground tracking-wider">
-                    Manifesto
-                  </p>
-                  <p className="text-lg italic">&ldquo;{state.manifesto}&rdquo;</p>
+                <div className="grid md:grid-cols-2 gap-4 pt-2">
+                  {state.fronteiras.length > 0 && (
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground tracking-wider mb-2">
+                        🚫 Não faz
+                      </p>
+                      <ul className="space-y-1">
+                        {state.fronteiras.map((f, i) => (
+                          <li key={i} className="text-sm">
+                            • {f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {state.fronteiras_positivas.length > 0 && (
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground tracking-wider mb-2">
+                        ✅ Faz
+                      </p>
+                      <ul className="space-y-1">
+                        {state.fronteiras_positivas.map((f, i) => (
+                          <li key={i} className="text-sm">
+                            • {f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <p className="text-xs uppercase text-muted-foreground tracking-wider mb-2">
-                    Fronteiras
-                  </p>
-                  <ul className="space-y-1">
-                    {state.fronteiras
-                      .filter((f) => f.trim())
-                      .map((f, i) => (
-                        <li key={i} className="text-sm">
-                          🚫 {f}
-                        </li>
+                {state.areas_atuacao.length > 0 && (
+                  <div>
+                    <p className="text-xs uppercase text-muted-foreground tracking-wider mb-2">
+                      Áreas de atuação
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {state.areas_atuacao.map((a, i) => (
+                        <span
+                          key={i}
+                          className="text-xs bg-secondary px-2 py-1 rounded"
+                        >
+                          {a}
+                        </span>
                       ))}
-                  </ul>
-                </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Separator />
 
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold">🎠 Seu carrossel pra postar</h3>
+                <h3 className="text-sm font-semibold">🎠 Carrossel pra postar</h3>
                 <Button size="sm" variant="outline" onClick={downloadAll}>
                   <Download className="mr-2 h-4 w-4" /> Baixar todos
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                4 slides (1080×1350). Baixe individualmente ou todos de uma vez.
-              </p>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[0, 1, 2, 3].map((i) => (
@@ -626,18 +788,20 @@ export default function TerritorioPage() {
   );
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
 function Stepper({ current }: { current: Step }) {
-  const labels = ["Tema", "Lente", "Manifesto", "Fronteiras", "Revisão"];
+  const labels = ["Domínio", "Lente", "Âncora", "Manifesto", "Fronteiras", "Atuação", "Revisão"];
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center justify-between gap-1 overflow-x-auto">
       {labels.map((label, i) => {
         const num = (i + 1) as Step;
         const done = current > num;
         const active = current === num;
         return (
-          <div key={i} className="flex-1 flex items-center gap-2">
+          <div key={i} className="flex items-center gap-1 flex-shrink-0">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
+              className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold ${
                 active
                   ? "bg-primary text-primary-foreground"
                   : done
@@ -648,18 +812,130 @@ function Stepper({ current }: { current: Step }) {
               {done ? "✓" : num}
             </div>
             <span
-              className={`text-xs whitespace-nowrap ${
+              className={`text-[11px] whitespace-nowrap ${
                 active ? "font-semibold" : "text-muted-foreground"
-              } hidden md:inline`}
+              } hidden lg:inline`}
             >
               {label}
             </span>
             {i < labels.length - 1 && (
-              <div className="flex-1 h-[2px] bg-muted min-w-4" />
+              <div className="w-3 lg:w-5 h-[2px] bg-muted" />
             )}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="flex items-center gap-2">
+        {hint === "Pencil" && <Pencil className="h-3 w-3" />}
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+function Nav({
+  onBack,
+  onNext,
+  canNext,
+}: {
+  onBack: () => void;
+  onNext: () => void;
+  canNext: boolean;
+}) {
+  return (
+    <div className="flex justify-between">
+      <Button variant="outline" onClick={onBack}>
+        <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+      </Button>
+      <Button onClick={onNext} disabled={!canNext}>
+        Continuar <ArrowRight className="ml-2 h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+function ListEditor({
+  title,
+  items,
+  onChange,
+  color,
+  placeholder,
+}: {
+  title: string;
+  items: string[];
+  onChange: (items: string[]) => void;
+  color: "destructive" | "primary";
+  placeholder?: string;
+}) {
+  const colorClass =
+    color === "destructive" ? "text-destructive" : "text-primary";
+
+  return (
+    <div className="space-y-2">
+      <Label className={colorClass}>{title}</Label>
+      {items.map((item, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <Input
+            value={item}
+            onChange={(e) => {
+              const copy = [...items];
+              copy[i] = e.target.value;
+              onChange(copy);
+            }}
+            placeholder={placeholder}
+          />
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onChange(items.filter((_, idx) => idx !== i))}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+      <Button variant="ghost" size="sm" onClick={() => onChange([...items, ""])}>
+        <Plus className="mr-2 h-4 w-4" /> Adicionar
+      </Button>
+    </div>
+  );
+}
+
+function Block({
+  label,
+  value,
+  bold,
+  italic,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+  italic?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-xs uppercase text-muted-foreground tracking-wider">
+        {label}
+      </p>
+      <p
+        className={`${bold ? "text-2xl font-bold" : "text-base"} ${italic ? "italic" : ""}`}
+      >
+        {value}
+      </p>
     </div>
   );
 }

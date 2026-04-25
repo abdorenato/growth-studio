@@ -6,8 +6,16 @@ import { motherTextPrompt } from "@/lib/prompts/monoflow";
 
 export async function POST(req: Request) {
   try {
-    const { userId, icpId, topic, hook, angle, atrelarOferta, editoriaId } =
-      await req.json();
+    const {
+      userId,
+      icpId,
+      topic,
+      hook,
+      angle,
+      atrelarOferta,
+      editoriaId,
+      targetStage,
+    } = await req.json();
     if (!userId || !icpId) {
       return NextResponse.json(
         { error: "userId e icpId obrigatórios" },
@@ -31,7 +39,8 @@ export async function POST(req: Request) {
       ctx,
       topic || "",
       hook || "",
-      angle || ""
+      angle || "",
+      targetStage || null
     );
     const text = await callClaude(system, user, 1500);
     return NextResponse.json({ motherText: text });

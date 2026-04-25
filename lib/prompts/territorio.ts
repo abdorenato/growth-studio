@@ -36,9 +36,9 @@ ${formatICP(icp)}
 ${vozCtx}${posCtx}`;
 }
 
-// ─── SUGERIR TEMAS ────────────────────────────────────────────────────────
+// ─── 1. SUGERIR DOMÍNIOS (descritivo técnico) ─────────────────────────────
 
-export function suggestTemasPrompt(
+export function suggestDominiosPrompt(
   creator: Partial<User> | null | undefined,
   icp: ICP,
   mapaVoz: MapaVoz | null,
@@ -46,16 +46,16 @@ export function suggestTemasPrompt(
 ) {
   const ctx = buildContext(creator, icp, mapaVoz, posicionamento);
 
-  const system = `Você é especialista em estratégia de marca e territórios de conteúdo.
+  const system = `Você é especialista em estratégia de marca.
 
-Sugira 3 opções de TEMA (domínio temático) pra esse criador dominar como território.
+Sugira 3 opções de DOMÍNIO TEMÁTICO (descritivo, técnico) que esse criador pode dominar.
 
-REGRAS DE UM BOM TEMA:
+REGRAS DE UM BOM DOMÍNIO:
 - 2-5 palavras
-- Amplo o suficiente pra ter o que dizer por anos
-- Estreito o suficiente pra virar autoridade específica
+- Descritivo, técnico — descreve o nicho/segmento de atuação
+- Amplo o bastante pra ter o que dizer por anos
+- Estreito o bastante pra virar autoridade
 - Coerente com a atividade real do criador
-- Evite genérico ("Marketing Digital") e super nicho ("LinkedIn Ads pra SaaS B2B")
 
 Exemplos bons:
 - "Vendas Consultivas B2B"
@@ -64,30 +64,87 @@ Exemplos bons:
 
 Exemplos ruins:
 - "Sucesso" (genérico demais)
-- "Anúncios de Facebook pra lojas de óculos no Paraná" (nicho demais)
+- "Anúncios de FB pra lojas no Paraná" (nicho demais)
 
 ${ctx}
 
 Responda EXCLUSIVAMENTE com JSON:
 {
   "options": [
-    {"tema": "...", "por_que": "breve explicação de por que encaixa"},
-    {"tema": "...", "por_que": "..."},
-    {"tema": "...", "por_que": "..."}
+    {"dominio": "...", "por_que": "breve explicação"},
+    {"dominio": "...", "por_que": "..."},
+    {"dominio": "...", "por_que": "..."}
   ]
 }`;
 
-  return { system, user: "Sugira 3 temas candidatos." };
+  return { system, user: "Sugira 3 domínios candidatos." };
 }
 
-// ─── GERAR MANIFESTO ──────────────────────────────────────────────────────
+// ─── 2. SUGERIR ÂNCORAS MENTAIS (1-3 palavras emocional) ──────────────────
+
+export function suggestAncorasPrompt(
+  creator: Partial<User> | null | undefined,
+  icp: ICP,
+  mapaVoz: MapaVoz | null,
+  posicionamento: Posicionamento,
+  dominio: string,
+  lente: LenteKey
+) {
+  const ctx = buildContext(creator, icp, mapaVoz, posicionamento);
+  const lenteInfo = LENTES[lente];
+
+  const system = `Você é especialista em branding e naming estratégico.
+
+Sugira 5 opções de ÂNCORA MENTAL pra esse território.
+
+O QUE É UMA ÂNCORA MENTAL:
+- 1 a 3 palavras
+- Emocional, intrigante OU provocativa
+- NÃO descreve o que a marca faz — comunica o ESPAÇO MENTAL que ela quer dominar
+- Compreendida em até 3 segundos
+- Funciona como bandeira, vira frase de bio, abre conversa
+
+DOMÍNIO TÉCNICO: ${dominio}
+LENTE: ${lenteInfo.label} — ${lenteInfo.desc}
+
+EXEMPLOS DE TRANSFORMAÇÃO:
+- Domínio "Vendas Consultivas" → Âncora "Vender é leitura"
+- Domínio "Marketing pra Arquitetos" → Âncora "A arte de cobrar"
+- Domínio "Finanças pra Casais" → Âncora "Casal sem segredo"
+- Domínio "Personal pra Mulheres 40+" → Âncora "Corpo é casa"
+- Domínio "Branding Pessoal" → Âncora "Marca é verbo"
+
+REGRAS RÍGIDAS (a maioria das opções deve respeitar):
+- Máximo 4 palavras
+- Sem termos técnicos do nicho
+- Sem palavras óbvias do domínio
+- Use verbos, metáforas, oposições, paradoxos
+
+${ctx}
+
+Responda EXCLUSIVAMENTE com JSON:
+{
+  "options": [
+    {"ancora": "...", "por_que": "explicação curta do efeito mental"},
+    {"ancora": "...", "por_que": "..."},
+    {"ancora": "...", "por_que": "..."},
+    {"ancora": "...", "por_que": "..."},
+    {"ancora": "...", "por_que": "..."}
+  ]
+}`;
+
+  return { system, user: "Sugira 5 âncoras mentais." };
+}
+
+// ─── 3. GERAR MANIFESTO (Tese + Expansão) ─────────────────────────────────
 
 export function generateManifestoPrompt(
   creator: Partial<User> | null | undefined,
   icp: ICP,
   mapaVoz: MapaVoz | null,
   posicionamento: Posicionamento,
-  tema: string,
+  dominio: string,
+  ancora: string,
   lente: LenteKey
 ) {
   const ctx = buildContext(creator, icp, mapaVoz, posicionamento);
@@ -95,93 +152,143 @@ export function generateManifestoPrompt(
 
   const system = `Você é especialista em estratégia de marca.
 
-Gere 3 opções de MANIFESTO para o território abaixo.
+Gere 3 opções de MANIFESTO completo (TESE + EXPANSÃO) pro território abaixo.
 
-O QUE É UM MANIFESTO:
-- 1 frase curta e memorável (8-20 palavras)
-- Expressa a tese/crença central do criador sobre o tema
-- Serve como BANDEIRA pública — vira bio, topo de post, storie fixada
-- Carrega a LENTE escolhida (ou seja, reflete a maneira de enxergar)
+ESTRUTURA DO MANIFESTO:
+- TESE (1 frase): curta, direta, forte, idealmente CONTRAINTUITIVA. É a bandeira pública.
+- EXPANSÃO (1-2 frases): explica a tese, conecta com problema real, sem jargões.
 
-TEMA: ${tema}
-
-LENTE ESCOLHIDA: ${lenteInfo.label}
+DOMÍNIO: ${dominio}
+ÂNCORA MENTAL: "${ancora}"
+LENTE: ${lenteInfo.label}
 - Descrição: ${lenteInfo.desc}
-- Palavras-chave da lente: ${lenteInfo.palavrasChave.join(", ")}
-- Exemplo no estilo: "${lenteInfo.exemplo}"
+- Palavras-chave: ${lenteInfo.palavrasChave.join(", ")}
 
 REGRAS:
-- O manifesto DEVE soar como da lente escolhida
-- Use as palavras-chave da lente quando couber naturalmente
-- Use o tom da voz do usuário
-- NÃO seja motivacional genérico ("seja o melhor de você mesmo")
-- Seja específico do tema — se for vendas, fale de vendas; não de "sucesso"
+- A tese deve soar como ${lenteInfo.label}
+- Tese de no máximo 12 palavras
+- Expansão deve ampliar a tese sem repetir as mesmas palavras
+- Zero motivacional vazio ("seja a melhor versão de você")
+
+EXEMPLOS DE BOA TESE + EXPANSÃO:
+- Tese: "Vender não é sorte. É leitura."
+  Expansão: "Quem fecha consistentemente lê padrões antes de pitch. O resto improvisa e perde."
+- Tese: "Não existe vendedor nato."
+  Expansão: "Existe vendedor com método. Talento sem sistema é loteria. Sistema sem talento ainda fecha."
 
 ${ctx}
 
 Responda EXCLUSIVAMENTE com JSON:
 {
   "options": [
-    {"manifesto": "...", "por_que": "breve explicação"},
-    {"manifesto": "...", "por_que": "..."},
-    {"manifesto": "...", "por_que": "..."}
+    {"tese": "...", "expansao": "...", "por_que": "breve explicação do efeito"},
+    {"tese": "...", "expansao": "...", "por_que": "..."},
+    {"tese": "...", "expansao": "...", "por_que": "..."}
   ],
   "recomendada": 0
 }`;
 
-  return { system, user: "Gere 3 manifestos." };
+  return { system, user: "Gere 3 opções de manifesto." };
 }
 
-// ─── SUGERIR FRONTEIRAS ───────────────────────────────────────────────────
+// ─── 4. SUGERIR FRONTEIRAS (negativas + positivas) ────────────────────────
 
 export function suggestFronteirasPrompt(
   creator: Partial<User> | null | undefined,
   icp: ICP,
   mapaVoz: MapaVoz | null,
   posicionamento: Posicionamento,
-  tema: string,
+  dominio: string,
+  ancora: string,
   lente: LenteKey,
-  manifesto: string
+  tese: string
 ) {
   const ctx = buildContext(creator, icp, mapaVoz, posicionamento);
   const lenteInfo = LENTES[lente];
 
   const system = `Você é especialista em posicionamento estratégico.
 
-Sugira 4 FRONTEIRAS (o que o criador NÃO fala, se recusa a defender) pro território abaixo.
+Sugira FRONTEIRAS pro território abaixo, em DUAS LISTAS PARALELAS:
 
-O QUE SÃO FRONTEIRAS:
-- Lista concreta do que está DE FORA do território
-- Força clareza estratégica — territórios sem fronteira viram genéricos
-- Cada fronteira ataca uma prática/abordagem COMUM do mercado que o criador rejeita
+🚫 FRONTEIRAS NEGATIVAS (4 itens) — o que NÃO faz/recusa
+✅ FRONTEIRAS POSITIVAS (4 itens) — o que FAZ/defende
+
+REGRAS:
+- Frases curtas (3-7 palavras cada)
+- ESCANEÁVEIS
+- PARALELAS: cada negativa idealmente tem uma positiva correspondente
 - Específicas do mercado, não genéricas
 
-Exemplos bons:
-- "Prospecção fria em massa"
-- "Gatilhos mentais clichês"
-- "Antes e depois de corpo"
-- "Dietas restritivas"
+EXEMPLOS BONS:
+🚫 Prospecção em massa  ↔  ✅ Diagnóstico antes de pitch
+🚫 Gatilhos mentais  ↔  ✅ Conversa franca
+🚫 Scripts decorados  ↔  ✅ Reunião improvisada com método
+🚫 Antes e depois de corpo  ↔  ✅ Histórias de força no dia a dia
 
-Exemplos ruins (muito genéricos):
-- "Conteúdo ruim"
-- "Não ter foco"
-- "Preguiça"
-
-TEMA: ${tema}
+DOMÍNIO: ${dominio}
+ÂNCORA: "${ancora}"
+TESE: "${tese}"
 LENTE: ${lenteInfo.label}
-MANIFESTO: "${manifesto}"
 
 ${ctx}
 
 Responda EXCLUSIVAMENTE com JSON:
 {
-  "options": [
-    "...",
-    "...",
-    "...",
-    "..."
-  ]
+  "negativas": ["...", "...", "...", "..."],
+  "positivas": ["...", "...", "...", "..."]
 }`;
 
-  return { system, user: "Sugira 4 fronteiras concretas." };
+  return { system, user: "Sugira fronteiras negativas + positivas." };
+}
+
+// ─── 5. SUGERIR ÁREAS DE ATUAÇÃO ──────────────────────────────────────────
+
+export function suggestAreasAtuacaoPrompt(
+  creator: Partial<User> | null | undefined,
+  icp: ICP,
+  mapaVoz: MapaVoz | null,
+  posicionamento: Posicionamento,
+  dominio: string,
+  ancora: string,
+  tese: string
+) {
+  const ctx = buildContext(creator, icp, mapaVoz, posicionamento);
+
+  const system = `Você é estrategista de negócio.
+
+Sugira 5 ÁREAS DE ATUAÇÃO concretas pro território abaixo.
+
+O QUE SÃO ÁREAS DE ATUAÇÃO:
+- Onde o território vira NEGÓCIO REAL
+- Aplicações práticas: processos, sistemas, abordagens, serviços, frameworks
+- NÃO são temas de conteúdo
+- NÃO são editorias
+- SÃO o que o criador entrega/cobra
+
+EXEMPLOS:
+Território "Vender é leitura" → áreas:
+- Diagnóstico de Maturidade de Compra
+- Treinamento de Discovery em 3 Camadas
+- Auditoria de CRM e Pipeline
+- Mentoria de Vendas Consultivas
+- Implementação de Framework de Proposta
+
+REGRAS:
+- 2-6 palavras por item
+- Cada item é uma OFERTA POTENCIAL
+- Coerente com a atividade do criador
+- Específico (não "consultoria geral")
+
+DOMÍNIO: ${dominio}
+ÂNCORA: "${ancora}"
+TESE: "${tese}"
+
+${ctx}
+
+Responda EXCLUSIVAMENTE com JSON:
+{
+  "areas": ["...", "...", "...", "...", "..."]
+}`;
+
+  return { system, user: "Sugira 5 áreas de atuação." };
 }

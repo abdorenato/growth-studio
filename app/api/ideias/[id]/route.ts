@@ -17,6 +17,7 @@ export async function PATCH(
       "angle",
       "carousel_style",
       "target_emotion",
+      "target_stage",
     ];
     const patch: Record<string, unknown> = {};
     for (const key of allowedFields) {

@@ -27,12 +27,16 @@ export function formatStrategyContext(ctx: StrategyContext): string {
 - Diferencial: ${ctx.posicionamento.diferencial_frase || ""}`
     : "";
 
-  const terBlock = ctx.territorio?.nome
+  const terBlock = ctx.territorio?.dominio || ctx.territorio?.ancora_mental
     ? `\nTERRITÓRIO (universo que o criador domina):
-- Tema: ${ctx.territorio.nome}
-- Lente: ${ctx.territorio.lente || ""}
-- Manifesto: "${ctx.territorio.manifesto || ""}"
-- FRONTEIRAS (nunca falar sobre): ${(ctx.territorio.fronteiras || []).join(", ")}`
+- Domínio (descritivo): ${ctx.territorio?.dominio || ""}
+- Âncora mental: "${ctx.territorio?.ancora_mental || ""}"
+- Lente: ${ctx.territorio?.lente || ""}
+- Tese: "${ctx.territorio?.tese || ctx.territorio?.manifesto || ""}"
+${ctx.territorio?.expansao ? `- Expansão: ${ctx.territorio.expansao}` : ""}
+- FRONTEIRAS NEGATIVAS (nunca falar sobre): ${(ctx.territorio?.fronteiras || []).join(", ")}
+${ctx.territorio?.fronteiras_positivas?.length ? `- FRONTEIRAS POSITIVAS (o que defende): ${ctx.territorio.fronteiras_positivas.join(", ")}` : ""}
+${ctx.territorio?.areas_atuacao?.length ? `- ÁREAS DE ATUAÇÃO (onde vira negócio): ${ctx.territorio.areas_atuacao.join(" | ")}` : ""}`
     : "";
 
   const edBlock = ctx.editoria

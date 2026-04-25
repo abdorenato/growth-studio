@@ -19,11 +19,22 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { userId, nome, lente, manifesto, fronteiras } = body;
+    const {
+      userId,
+      dominio,
+      ancora_mental,
+      lente,
+      tese,
+      expansao,
+      manifesto, // legado
+      fronteiras,
+      fronteiras_positivas,
+      areas_atuacao,
+    } = body;
 
-    if (!userId || !nome) {
+    if (!userId || !dominio) {
       return NextResponse.json(
-        { error: "userId e nome obrigatórios" },
+        { error: "userId e dominio obrigatórios" },
         { status: 400 }
       );
     }
@@ -32,10 +43,15 @@ export async function POST(req: Request) {
     const { error } = await supabase.from("territorios").upsert(
       {
         user_id: userId,
-        nome,
+        dominio,
+        ancora_mental: ancora_mental || null,
         lente: lente || null,
-        manifesto: manifesto || null,
+        tese: tese || null,
+        expansao: expansao || null,
+        manifesto: manifesto || tese || null, // mantém compat
         fronteiras: fronteiras || [],
+        fronteiras_positivas: fronteiras_positivas || [],
+        areas_atuacao: areas_atuacao || [],
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" }

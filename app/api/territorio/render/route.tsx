@@ -1,63 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from "next/og";
 
-// Conjugação da 1ª pessoa do presente pra capa (verbo no infinitivo → "eu faço")
-const IRREGULARES: Record<string, string> = {
-  fazer: "faço",
-  dizer: "digo",
-  trazer: "trago",
-  ver: "vejo",
-  vir: "venho",
-  ter: "tenho",
-  ler: "leio",
-  crer: "creio",
-  ir: "vou",
-  ser: "sou",
-  estar: "estou",
-  dar: "dou",
-  saber: "sei",
-  poder: "posso",
-  querer: "quero",
-  ouvir: "ouço",
-  pedir: "peço",
-  medir: "meço",
-  servir: "sirvo",
-  sentir: "sinto",
-  cobrir: "cubro",
-  dormir: "durmo",
-  perder: "perco",
-  caber: "caibo",
-  pôr: "ponho",
-  por: "ponho",
-};
-
-function primeiraPessoa(frase: string): string {
-  const trimmed = frase.trim();
-  if (!trimmed) return frase;
-  const [primeira, ...resto] = trimmed.split(/\s+/);
-  if (!primeira) return frase;
-  const lower = primeira.toLowerCase().replace(/[.,;!?]$/, "");
-
-  let conjugado: string | null = null;
-
-  if (IRREGULARES[lower]) {
-    conjugado = IRREGULARES[lower];
-  } else if (/^[a-záéíóúâêôãõç]+(ar|er|ir)$/i.test(lower)) {
-    const radical = lower.slice(0, -2);
-    conjugado = radical + "o";
-  }
-
-  if (!conjugado) return frase;
-
-  // Preserva capitalização da primeira letra
-  const isUpper = primeira[0] === primeira[0].toUpperCase();
-  const finalWord = isUpper
-    ? conjugado[0].toUpperCase() + conjugado.slice(1)
-    : conjugado;
-
-  return [finalWord, ...resto].join(" ");
-}
-
 const LENTE_COLORS: Record<string, { accent: string; name: string; icon: string }> = {
   analitica: { accent: "#4FC3F7", name: "Analítica", icon: "🧠" },
   humana: { accent: "#F472B6", name: "Humana", icon: "❤️" },
@@ -68,19 +11,26 @@ const LENTE_COLORS: Record<string, { accent: string; name: string; icon: string 
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const tema = searchParams.get("tema") || "";
+  const ancora = searchParams.get("ancora") || searchParams.get("tema") || "";
   const lente = searchParams.get("lente") || "analitica";
-  const manifesto = searchParams.get("manifesto") || "";
-  const fronteirasRaw = searchParams.get("fronteiras") || "[]";
+  const tese = searchParams.get("tese") || searchParams.get("manifesto") || "";
+  const expansao = searchParams.get("expansao") || "";
+  const negativasRaw = searchParams.get("negativas") || searchParams.get("fronteiras") || "[]";
+  const positivasRaw = searchParams.get("positivas") || "[]";
   const handle = searchParams.get("handle") || "";
-  const resultado = searchParams.get("resultado") || ""; // vem do posicionamento
   const slide = Number(searchParams.get("slide") || "0");
 
-  let fronteiras: string[] = [];
+  let negativas: string[] = [];
+  let positivas: string[] = [];
   try {
-    fronteiras = JSON.parse(fronteirasRaw).filter((f: string) => f?.trim());
+    negativas = JSON.parse(negativasRaw).filter((f: string) => f?.trim());
   } catch {
-    fronteiras = [];
+    negativas = [];
+  }
+  try {
+    positivas = JSON.parse(positivasRaw).filter((f: string) => f?.trim());
+  } catch {
+    positivas = [];
   }
 
   const l = LENTE_COLORS[lente] || LENTE_COLORS.analitica;
@@ -148,14 +98,18 @@ export async function GET(req: Request) {
           </div>
 
           {/* Conteúdo específico do slide */}
-          {slide === 0 && (
-            <CapaSlide tema={tema} resultado={resultado} accent={l.accent} />
+          {slide === 0 && <AncoraSlide ancora={ancora} accent={l.accent} />}
+          {slide === 1 && (
+            <ManifestoSlide tese={tese} expansao={expansao} accent={l.accent} />
           )}
-          {slide === 1 && <ManifestoSlide manifesto={manifesto} accent={l.accent} />}
           {slide === 2 && (
-            <FronteirasSlide fronteiras={fronteiras} accent={l.accent} />
+            <FronteirasSlide
+              negativas={negativas}
+              positivas={positivas}
+              accent={l.accent}
+            />
           )}
-          {slide === 3 && <CtaSlide tema={tema} accent={l.accent} />}
+          {slide === 3 && <CtaSlide ancora={ancora} accent={l.accent} />}
 
           {/* Footer com @ */}
           <div
@@ -186,25 +140,9 @@ export async function GET(req: Request) {
 
 // ─── Slides ────────────────────────────────────────────────────────────────
 
-function CapaSlide({
-  tema,
-  resultado,
-  accent,
-}: {
-  tema: string;
-  resultado: string;
-  accent: string;
-}) {
-  // Se tem resultado (vem do posicionamento), usa como frase de ação principal.
-  // Conjuga o verbo inicial pra 1ª pessoa: "Validar se..." → "Valido se..."
-  // Senão, cai pro tema como fallback.
-  const fraseBase = resultado?.trim() || tema;
-  const frasePrincipal = resultado?.trim() ? primeiraPessoa(fraseBase) : fraseBase;
-  const showTemaTag = Boolean(resultado?.trim() && tema?.trim());
-
-  // Tamanho da fonte se ajusta conforme comprimento (pra não estourar)
-  const fs =
-    frasePrincipal.length > 80 ? 68 : frasePrincipal.length > 45 ? 80 : 92;
+function AncoraSlide({ ancora, accent }: { ancora: string; accent: string }) {
+  // Âncora mental é curta (1-3 palavras) — fonte BEM grande
+  const fs = ancora.length > 25 ? 100 : ancora.length > 15 ? 130 : 160;
 
   return (
     <div
@@ -220,14 +158,26 @@ function CapaSlide({
       <div
         style={{
           display: "flex",
+          fontSize: 22,
+          color: "rgba(255,255,255,0.55)",
+          fontWeight: 600,
+          letterSpacing: "0.2em",
+          textTransform: "uppercase",
+        }}
+      >
+        Meu território
+      </div>
+      <div
+        style={{
+          display: "flex",
           fontSize: fs,
           color: "#ffffff",
           fontWeight: 900,
-          lineHeight: 1.05,
-          letterSpacing: "-0.03em",
+          lineHeight: 0.95,
+          letterSpacing: "-0.04em",
         }}
       >
-        {frasePrincipal}
+        {ancora}
       </div>
       <div
         style={{
@@ -238,33 +188,20 @@ function CapaSlide({
           borderRadius: 3,
         }}
       />
-      {showTemaTag && (
-        <div
-          style={{
-            display: "flex",
-            fontSize: 24,
-            color: accent,
-            fontWeight: 700,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-          }}
-        >
-          {tema}
-        </div>
-      )}
     </div>
   );
 }
 
 function ManifestoSlide({
-  manifesto,
+  tese,
+  expansao,
   accent,
 }: {
-  manifesto: string;
+  tese: string;
+  expansao: string;
   accent: string;
 }) {
-  const fs =
-    manifesto.length > 110 ? 52 : manifesto.length > 70 ? 62 : 76;
+  const teseFs = tese.length > 80 ? 56 : tese.length > 50 ? 68 : 80;
 
   return (
     <div
@@ -274,16 +211,16 @@ function ManifestoSlide({
         flex: 1,
         justifyContent: "center",
         alignItems: "flex-start",
-        gap: 20,
+        gap: 30,
       }}
     >
       <div
         style={{
           display: "flex",
-          fontSize: 80,
+          fontSize: 70,
           color: accent,
           fontWeight: 900,
-          lineHeight: 1,
+          lineHeight: 0.8,
         }}
       >
         &ldquo;
@@ -291,29 +228,47 @@ function ManifestoSlide({
       <div
         style={{
           display: "flex",
-          fontSize: fs,
+          fontSize: teseFs,
           color: "#ffffff",
           fontWeight: 800,
-          lineHeight: 1.15,
+          lineHeight: 1.1,
           letterSpacing: "-0.02em",
         }}
       >
-        {manifesto}
+        {tese}
       </div>
+      {expansao ? (
+        <div
+          style={{
+            display: "flex",
+            fontSize: 30,
+            color: "rgba(255,255,255,0.7)",
+            fontWeight: 400,
+            lineHeight: 1.3,
+            paddingLeft: 24,
+            borderLeft: `4px solid ${accent}`,
+          }}
+        >
+          {expansao}
+        </div>
+      ) : null}
     </div>
   );
 }
 
 function FronteirasSlide({
-  fronteiras,
+  negativas,
+  positivas,
   accent,
 }: {
-  fronteiras: string[];
+  negativas: string[];
+  positivas: string[];
   accent: string;
 }) {
-  const items = fronteiras.slice(0, 4);
-  // Ajusta o tamanho do texto conforme quantidade pra não estourar
-  const fs = items.length <= 2 ? 42 : items.length === 3 ? 36 : 30;
+  const neg = negativas.slice(0, 4);
+  const pos = positivas.slice(0, 4);
+  const max = Math.max(neg.length, pos.length);
+  const fs = max <= 2 ? 28 : max === 3 ? 24 : 20;
 
   return (
     <div
@@ -323,71 +278,107 @@ function FronteirasSlide({
         flex: 1,
         justifyContent: "center",
         alignItems: "flex-start",
-        gap: 28,
+        gap: 24,
       }}
     >
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
-          gap: 8,
+          fontSize: 48,
+          color: "#ffffff",
+          fontWeight: 900,
+          letterSpacing: "-0.02em",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            fontSize: 26,
-            color: "rgba(255,255,255,0.55)",
-            fontWeight: 500,
-          }}
-        >
-          Aqui NÃO tem
-        </div>
-        <div
-          style={{
-            display: "flex",
-            fontSize: 60,
-            color: "#ffffff",
-            fontWeight: 900,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          espaço pra
-        </div>
+        Como eu opero
       </div>
 
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
-          gap: 18,
+          gap: 24,
           width: "100%",
         }}
       >
-        {items.map((f, i) => (
+        {/* Coluna negativas */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            gap: 12,
+          }}
+        >
           <div
-            key={i}
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: 20,
-              fontSize: fs,
-              color: "#ffffff",
+              fontSize: 22,
+              color: "#ef4444",
               fontWeight: 700,
-              lineHeight: 1.2,
-              paddingLeft: 14,
-              borderLeft: `6px solid ${accent}`,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
             }}
           >
-            {f}
+            🚫 Não faço
           </div>
-        ))}
+          {neg.map((f, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                fontSize: fs,
+                color: "#ffffff",
+                fontWeight: 600,
+                lineHeight: 1.25,
+              }}
+            >
+              {f}
+            </div>
+          ))}
+        </div>
+
+        {/* Coluna positivas */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              fontSize: 22,
+              color: accent,
+              fontWeight: 700,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+            }}
+          >
+            ✅ Faço
+          </div>
+          {pos.map((f, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                fontSize: fs,
+                color: "#ffffff",
+                fontWeight: 600,
+                lineHeight: 1.25,
+              }}
+            >
+              {f}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function CtaSlide({ tema, accent }: { tema: string; accent: string }) {
+function CtaSlide({ ancora, accent }: { ancora: string; accent: string }) {
   return (
     <div
       style={{
@@ -433,8 +424,7 @@ function CtaSlide({ tema, accent }: { tema: string; accent: string }) {
           marginTop: 20,
         }}
       >
-        É sobre {tema.toLowerCase()} que eu quero
-        continuar a conversa com você.
+        Quero continuar a conversa sobre &ldquo;{ancora}&rdquo;.
       </div>
     </div>
   );

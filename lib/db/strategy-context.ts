@@ -12,10 +12,15 @@ export type Posicionamento = {
 } | null;
 
 export type Territorio = {
-  nome?: string;
-  lente?: string;
-  manifesto?: string;
-  fronteiras?: string[];
+  dominio?: string; // ex: "Vendas Consultivas B2B" (descritivo técnico)
+  ancora_mental?: string; // ex: "Vender é leitura" (1-3 palavras emocional)
+  lente?: string; // analitica | humana | provocadora | pratica | visionaria
+  manifesto?: string; // legado, mantém pra compatibilidade
+  tese?: string; // 1 frase forte, contraintuitiva
+  expansao?: string; // 1-2 frases que explicam a tese
+  fronteiras?: string[]; // negativas: o que NÃO faz
+  fronteiras_positivas?: string[]; // o que FAZ
+  areas_atuacao?: string[]; // onde o território vira negócio
 } | null;
 
 export type Editoria = {
@@ -76,7 +81,9 @@ export async function fetchStrategyContext(
 
   const terPromise = supabase
     .from("territorios")
-    .select("nome, lente, manifesto, fronteiras")
+    .select(
+      "dominio, ancora_mental, lente, manifesto, tese, expansao, fronteiras, fronteiras_positivas, areas_atuacao"
+    )
     .eq("user_id", userId)
     .maybeSingle();
 

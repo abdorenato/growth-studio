@@ -95,5 +95,6 @@ export type IdeaData = {
   hook: string;
   angle: string;
   target_emotion: string;
+  target_stage?: string; // estágio de consciência: inconsciente|problema|solucao|produto|pronto
   carousel_style: string;
 };

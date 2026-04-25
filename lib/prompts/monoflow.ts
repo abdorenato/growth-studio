@@ -1,5 +1,21 @@
 import type { StrategyContext } from "@/lib/db/strategy-context";
 import { formatStrategyContext } from "./_strategy-context";
+import { ESTAGIOS, type Estagio } from "@/lib/estagios/constants";
+
+// Bloco de instrução de estágio de consciência (Eugene Schwartz)
+function stageBlock(stage: string | null): string {
+  if (!stage) return "";
+  const info = ESTAGIOS[stage as Estagio];
+  if (!info) return "";
+
+  return `\n
+ESTÁGIO DE CONSCIÊNCIA DA AUDIÊNCIA: ${info.label} (${info.icon})
+- Situação: ${info.desc}
+- Tom esperado: ${info.tom}
+- Exemplo de hook ideal: "${info.exemploHook}"
+
+CALIBRE TODA A PEÇA pra esse estágio. Hook, profundidade, exemplos e CTA devem assumir que a audiência está nesse momento da jornada — nem antes, nem depois.`;
+}
 
 // ─── TEXTO-MÃE ─────────────────────────────────────────────────────────────
 
@@ -7,9 +23,11 @@ export function motherTextPrompt(
   ctx: StrategyContext,
   topic: string,
   hook: string,
-  angle: string
+  angle: string,
+  targetStage: string | null = null
 ) {
   const strategyBlock = formatStrategyContext(ctx);
+  const stageInstruction = stageBlock(targetStage);
 
   const system = `Você é um estrategista de conteúdo.
 
@@ -26,6 +44,7 @@ REGRAS:
 TEMA: ${topic}
 HOOK: ${hook}
 ÂNGULO: ${angle}
+${stageInstruction}
 
 ${strategyBlock}
 
@@ -36,12 +55,18 @@ Responda APENAS com o texto-mãe (sem JSON, sem formatação).`;
 
 // ─── REELS ─────────────────────────────────────────────────────────────────
 
-export function reelsPrompt(ctx: StrategyContext, motherText: string) {
+export function reelsPrompt(
+  ctx: StrategyContext,
+  motherText: string,
+  targetStage: string | null = null
+) {
   const strategyBlock = formatStrategyContext(ctx);
+  const stageInstruction = stageBlock(targetStage);
 
   const system = `Você é roteirista de Reels virais.
 
 Crie roteiro baseado no TEXTO-MÃE abaixo, respeitando toda a estratégia da marca.
+${stageInstruction}
 
 ${strategyBlock}
 
@@ -72,10 +97,16 @@ Responda EXCLUSIVAMENTE com JSON:
 
 // ─── POST ──────────────────────────────────────────────────────────────────
 
-export function postPrompt(ctx: StrategyContext, motherText: string) {
+export function postPrompt(
+  ctx: StrategyContext,
+  motherText: string,
+  targetStage: string | null = null
+) {
   const strategyBlock = formatStrategyContext(ctx);
+  const stageInstruction = stageBlock(targetStage);
 
   const system = `Você é copywriter de posts de Instagram de alta conversão.
+${stageInstruction}
 
 ${strategyBlock}
 
@@ -107,12 +138,15 @@ Responda EXCLUSIVAMENTE com JSON:
 export function carouselPrompt(
   ctx: StrategyContext,
   motherText: string,
-  numSlides = 5
+  numSlides = 5,
+  targetStage: string | null = null
 ) {
   const strategyBlock = formatStrategyContext(ctx);
+  const stageInstruction = stageBlock(targetStage);
   const slidesFinal = Math.min(Math.max(numSlides, 3), 5);
 
   const system = `Você é copywriter de carrosséis virais.
+${stageInstruction}
 
 ${strategyBlock}
 
@@ -144,10 +178,16 @@ Crie ${slidesFinal} slides. Não gere mais que isso.`;
 
 // ─── STORIES ───────────────────────────────────────────────────────────────
 
-export function storiesPrompt(ctx: StrategyContext, motherText: string) {
+export function storiesPrompt(
+  ctx: StrategyContext,
+  motherText: string,
+  targetStage: string | null = null
+) {
   const strategyBlock = formatStrategyContext(ctx);
+  const stageInstruction = stageBlock(targetStage);
 
   const system = `Você é especialista em sequências de Stories.
+${stageInstruction}
 
 ${strategyBlock}
 
@@ -176,10 +216,16 @@ Máximo 4 stories. Nada além.`;
 
 // ─── LINKEDIN ──────────────────────────────────────────────────────────────
 
-export function linkedinPrompt(ctx: StrategyContext, motherText: string) {
+export function linkedinPrompt(
+  ctx: StrategyContext,
+  motherText: string,
+  targetStage: string | null = null
+) {
   const strategyBlock = formatStrategyContext(ctx);
+  const stageInstruction = stageBlock(targetStage);
 
   const system = `Você é copywriter de LinkedIn.
+${stageInstruction}
 
 ${strategyBlock}
 
@@ -204,10 +250,16 @@ Responda EXCLUSIVAMENTE com JSON:
 
 // ─── TIKTOK ────────────────────────────────────────────────────────────────
 
-export function tiktokPrompt(ctx: StrategyContext, motherText: string) {
+export function tiktokPrompt(
+  ctx: StrategyContext,
+  motherText: string,
+  targetStage: string | null = null
+) {
   const strategyBlock = formatStrategyContext(ctx);
+  const stageInstruction = stageBlock(targetStage);
 
   const system = `Você é roteirista de TikTok com foco em retenção nos 3 primeiros segundos.
+${stageInstruction}
 
 ${strategyBlock}
 

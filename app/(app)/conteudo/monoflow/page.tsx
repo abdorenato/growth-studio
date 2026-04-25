@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { ImageRender } from "@/components/monoflow/image-render";
 import { useUserStore } from "@/hooks/use-user-store";
+import { ESTAGIOS, type Estagio } from "@/lib/estagios/constants";
 
 type Platform = "reels" | "post" | "carousel" | "stories" | "linkedin" | "tiktok";
 
@@ -55,6 +56,7 @@ export default function MonoflowPage() {
   const [atrelarOferta, setAtrelarOferta] = useState(false);
   const [ofertaEmFoco, setOfertaEmFoco] = useState<any>(null);
   const [editoriaId, setEditoriaId] = useState<string>("");
+  const [targetStage, setTargetStage] = useState<string>("");
 
   useEffect(() => {
     (async () => {
@@ -74,11 +76,13 @@ export default function MonoflowPage() {
     const qHook = searchParams.get("hook");
     const qAngle = searchParams.get("angle");
     const qEditoriaId = searchParams.get("editoriaId");
+    const qStage = searchParams.get("stage");
     if (qTopic || qHook) {
       setTopic(qTopic || "");
       setHook(qHook || "");
       setAngle(qAngle || "");
       if (qEditoriaId) setEditoriaId(qEditoriaId);
+      if (qStage) setTargetStage(qStage);
       toast.success(`Ideia carregada: "${qTopic}"`);
     } else {
       // Fallback: lê sessionStorage (compatibilidade com fluxo antigo)
@@ -113,6 +117,7 @@ export default function MonoflowPage() {
           angle,
           atrelarOferta,
           editoriaId: editoriaId || null,
+          targetStage: targetStage || null,
         }),
       });
       if (!resp.ok) throw new Error();
@@ -147,6 +152,7 @@ export default function MonoflowPage() {
               icpId,
               atrelarOferta,
               editoriaId: editoriaId || null,
+              targetStage: targetStage || null,
               motherText,
               platform: p.key,
               numSlides: p.key === "carousel" ? 5 : undefined,
@@ -246,6 +252,11 @@ export default function MonoflowPage() {
               placeholder="Ex: contraintuitivo / storytelling"
             />
           </Field>
+
+          {/* Indicador de estágio carregado da ideia */}
+          {targetStage && (
+            <StageBadge stage={targetStage} onClear={() => setTargetStage("")} />
+          )}
 
           {/* Toggle: atrelar à oferta em foco */}
           {ofertaEmFoco && (
@@ -609,4 +620,35 @@ function formatCopyText(platform: Platform, data: any): string {
       break;
   }
   return lines.join("\n");
+}
+
+function StageBadge({
+  stage,
+  onClear,
+}: {
+  stage: string;
+  onClear: () => void;
+}) {
+  const info = ESTAGIOS[stage as Estagio];
+  if (!info) return null;
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-xl">{info.icon}</span>
+        <div className="min-w-0">
+          <p className="text-xs font-medium">
+            Calibrado pra audiência: <b>{info.label}</b>
+          </p>
+          <p className="text-xs text-muted-foreground truncate">{info.tom}</p>
+        </div>
+      </div>
+      <button
+        onClick={onClear}
+        className="text-xs text-muted-foreground hover:text-foreground flex-shrink-0"
+        title="Remover estágio"
+      >
+        ✕
+      </button>
+    </div>
+  );
 }

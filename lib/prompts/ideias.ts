@@ -83,6 +83,20 @@ Gere ${count} IDEIAS de carrosséis DENTRO DA EDITORIA abaixo. Todas as ideias p
 - Ter gancho forte (curiosidade, urgência, contraintuição)
 - Ser acionáveis — não conceituais demais
 
+ESTÁGIO DE CONSCIÊNCIA (Eugene Schwartz):
+Cada ideia deve mirar UM estágio dominante da audiência. Decida com base no hook e no ângulo:
+
+- "inconsciente": pessoa não sabe que tem o problema. Hook provocativo, abre os olhos. Ex: "Você perde dinheiro toda semana sem perceber"
+- "problema": sente a dor mas não busca solução. Hook valida e explora a dor. Ex: "Por que sua reunião de venda nunca avança?"
+- "solucao": busca soluções, ainda não conhece a sua. Hook compara abordagens. Ex: "Os 3 caminhos pra escalar vendas"
+- "produto": conhece você, ainda não decidiu. Hook diferencia/prova. Ex: "Por que [método] supera [alternativa]"
+- "pronto": só falta gatilho. Hook tem urgência/escassez. Ex: "Última semana com vaga"
+
+DISTRIBUIÇÃO RECOMENDADA por gera ção (varie pra cobrir o funil):
+- Pelo menos 1 ideia em cada extremo (inconsciente OU pronto, dependendo da editoria)
+- Maioria nos estágios do meio (problema/solucao/produto)
+- Coerência com a editoria: editorias de Provocar tendem a "inconsciente/problema", de Converter tendem a "produto/pronto"
+
 ${userCtx}
 ${editoriaContext}
 
@@ -98,6 +112,7 @@ Responda EXCLUSIVAMENTE com JSON:
       "hook": "frase de gancho do slide 1 (curiosidade/urgência)",
       "angle": "ângulo/abordagem da peça",
       "target_emotion": "emoção principal",
+      "target_stage": "inconsciente|problema|solucao|produto|pronto",
       "carousel_style": "educational|storytelling|listicle|myth_busting|before_after"
     }
   ]

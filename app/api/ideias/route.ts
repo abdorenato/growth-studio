@@ -8,6 +8,7 @@ type IdeiaInput = {
   angle?: string;
   carousel_style?: string;
   target_emotion?: string;
+  target_stage?: string;
 };
 
 // GET — lista ideias do usuário, opcionalmente filtradas por editoria
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
         angle: i.angle || null,
         carousel_style: i.carousel_style || null,
         target_emotion: i.target_emotion || null,
+        target_stage: i.target_stage || null,
       }));
 
     if (rows.length === 0) {
