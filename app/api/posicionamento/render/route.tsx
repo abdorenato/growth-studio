@@ -3,30 +3,15 @@ import { ImageResponse } from "next/og";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const icp = searchParams.get("icp") || "";
-  const resultado = searchParams.get("resultado") || "";
-  const mecanismoNome = searchParams.get("mecanismoNome") || "";
-  const mecanismoDescricao = searchParams.get("mecanismoDescricao") || "";
-  const diferencial = searchParams.get("diferencial") || "";
+  const declaracao = (searchParams.get("declaracao") || "").trim();
+  const fraseApoio = (searchParams.get("fraseApoio") || "").trim();
   const handle = searchParams.get("handle") || "";
 
-  const mecanismoFinal = mecanismoNome
-    ? mecanismoDescricao
-      ? `${mecanismoNome} — ${mecanismoDescricao}`
-      : mecanismoNome
-    : mecanismoDescricao;
-
-  // Monta texto como blocos (linha por linha) para controlar o layout
-  const blocks = [
-    { text: "Eu ajudo", color: "#ffffff" },
-    { text: icp, color: "#4FC3F7" },
-    { text: "a", color: "#ffffff" },
-    { text: resultado, color: "#4FC3F7" },
-    { text: "através de", color: "#ffffff" },
-    { text: mecanismoFinal || "—", color: "#A855F7" },
-    { text: "e me diferencio porque", color: "#ffffff" },
-    { text: diferencial, color: "#FBBF24" },
-  ];
+  // Tamanho da declaração se ajusta conforme comprimento (sem estourar)
+  const decFs =
+    declaracao.length > 130 ? 52 : declaracao.length > 80 ? 60 : 72;
+  const apoioFs =
+    fraseApoio.length > 140 ? 26 : fraseApoio.length > 80 ? 30 : 34;
 
   try {
     return new ImageResponse(
@@ -71,20 +56,6 @@ export async function GET(req: Request) {
             }}
           />
 
-          {/* Kicker topo */}
-          <div
-            style={{
-              display: "flex",
-              fontSize: 26,
-              color: "#4FC3F7",
-              fontWeight: 700,
-              letterSpacing: "0.3em",
-              textTransform: "uppercase",
-            }}
-          >
-            Posicionamento
-          </div>
-
           {/* Conteúdo centralizado verticalmente */}
           <div
             style={{
@@ -93,25 +64,49 @@ export async function GET(req: Request) {
               flex: 1,
               justifyContent: "center",
               alignItems: "flex-start",
-              gap: 10,
+              gap: 60,
             }}
           >
-            {blocks.map((b, i) => (
+            {/* Declaração principal */}
+            <div
+              style={{
+                display: "flex",
+                fontSize: decFs,
+                color: "#ffffff",
+                fontWeight: 800,
+                lineHeight: 1.15,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {declaracao || " "}
+            </div>
+
+            {/* Linha decorativa de separação */}
+            <div
+              style={{
+                display: "flex",
+                width: 100,
+                height: 4,
+                background: "#4FC3F7",
+                borderRadius: 2,
+              }}
+            />
+
+            {/* Frase de apoio */}
+            {fraseApoio ? (
               <div
-                key={i}
                 style={{
                   display: "flex",
-                  fontSize: b.color === "#ffffff" ? 40 : 56,
-                  color: b.color,
-                  fontWeight: b.color === "#ffffff" ? 400 : 800,
-                  lineHeight: 1.15,
-                  letterSpacing: "-0.01em",
-                  textAlign: "left",
+                  fontSize: apoioFs,
+                  color: "rgba(255,255,255,0.75)",
+                  fontWeight: 400,
+                  lineHeight: 1.4,
+                  letterSpacing: "-0.005em",
                 }}
               >
-                {b.text}
+                {fraseApoio}
               </div>
-            ))}
+            ) : null}
           </div>
 
           {/* @ no rodapé */}

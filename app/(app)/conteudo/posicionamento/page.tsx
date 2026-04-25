@@ -283,11 +283,8 @@ export default function PosicionamentoPage() {
 
   const renderURL = () =>
     `/api/posicionamento/render?${new URLSearchParams({
-      icp: icpName,
-      resultado: state.resultado,
-      mecanismoNome: state.mecanismo_nome,
-      mecanismoDescricao: state.mecanismo_descricao,
-      diferencial: state.diferencial_frase,
+      declaracao: state.declaracao_principal,
+      fraseApoio: state.frase_apoio,
       handle: user.instagram || "",
     }).toString()}`;
 
