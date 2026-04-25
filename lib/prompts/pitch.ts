@@ -87,3 +87,121 @@ Gere APENAS o texto final do pitch (3-5 parágrafos, fluido, persuasivo, na VOZ 
 
   return { system, user: "Gere o pitch final." };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ELEVATOR PITCH — versao curta, ~30s falados (70-100 palavras)
+// ─────────────────────────────────────────────────────────────────────────────
+export function elevatorPitchPrompt(
+  ctx: StrategyContext,
+  oferta: Offer,
+  pitchText: string
+) {
+  const strategyBlock = formatStrategyContext(ctx);
+
+  const system = `Você é um copywriter especialista em comunicação de alto impacto.
+
+Sua tarefa: comprimir o pitch completo abaixo num ELEVATOR PITCH — texto curto pra falar em voz alta em 30 segundos (70-100 palavras), suficiente pra alguém entender quem é o criador, o que ele resolve, pra quem, e por que vale ouvir.
+
+CONTEXTO ESTRATÉGICO COMPLETO DO CRIADOR:
+${strategyBlock}
+
+OFERTA:
+${formatOferta(oferta)}
+
+PITCH COMPLETO (fonte da verdade — o elevator é uma compressão dele, não algo novo):
+"""
+${pitchText}
+"""
+
+${REGRAS_GERAIS}
+6. NÃO invente nada que não esteja no pitch acima ou no contexto estratégico.
+7. NÃO seja genérico ("ajudo pessoas a alcançarem seus objetivos"). Seja específico ao território/posicionamento.
+8. Peso máximo na ÂNCORA MENTAL e na TESE — é o que cola na cabeça.
+
+ESTRUTURA DO ELEVATOR (siga essa ordem mental, não use labels):
+1. Quem é o criador (1 frase, ancorada no posicionamento)
+2. O que ele resolve / pra quem (1 frase, ancorada na dor do ICP)
+3. O que torna ele diferente (1 frase, ancorada na tese/lente do território)
+4. Convite pra próximo passo (1 frase, leve — não vendedor agressivo)
+
+LIMITES:
+- 70 a 100 palavras. NÃO ultrapasse.
+- Texto corrido (sem bullets, sem markdown, sem emojis).
+- Comece direto, sem "Olá, eu sou..." (parece script).
+- Termine com um convite/abertura — não com call-to-action de venda.
+
+Responda APENAS com o texto do elevator pitch. Nada antes, nada depois.`;
+
+  return { system, user: "Gere o elevator pitch." };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CARTA DE VENDAS — long form, base pra email longo ou roteiro de VSL
+// ─────────────────────────────────────────────────────────────────────────────
+export function cartaVendasPrompt(
+  ctx: StrategyContext,
+  oferta: Offer,
+  pitchText: string
+) {
+  const strategyBlock = formatStrategyContext(ctx);
+
+  const system = `Você é um copywriter direct response especialista em cartas de vendas longas (estilo Gary Halbert / Gary Bencivenga / Eugene Schwartz aplicado ao digital).
+
+Sua tarefa: expandir o pitch abaixo numa CARTA DE VENDAS longa, que serve como base pra:
+- Email longo de vendas
+- Roteiro de VSL (Video Sales Letter)
+- Página de vendas long-form
+
+CONTEXTO ESTRATÉGICO COMPLETO DO CRIADOR:
+${strategyBlock}
+
+OFERTA:
+${formatOferta(oferta)}
+
+PITCH BASE (a carta deve manter EXATAMENTE a mesma promessa, ângulo e voz — só expande):
+"""
+${pitchText}
+"""
+
+${REGRAS_GERAIS}
+6. NÃO invente história pessoal, métricas, depoimentos, números de alunos/clientes, certificações ou prêmios. Use só o que está no contexto.
+7. Se faltar prova concreta, prefira mecanismo lógico (ex: "porque quando você faz X, Y acontece") em vez de inventar prova social.
+8. Coerente com a TESE e ÂNCORA MENTAL do território — a carta é a versão expandida do mesmo argumento.
+
+ESTRUTURA OBRIGATÓRIA (use os blocos abaixo, sem cabeçalhos visíveis — texto fluido):
+
+1. **HOOK / Lead** (1-2 parágrafos):
+   Abre com a dor do ICP ou um insight contraintuitivo da tese do território. Faz o leitor pensar "isso é comigo".
+
+2. **Problema amplificado** (2-3 parágrafos):
+   Mostra que o leitor já tentou as soluções óbvias e por que não funcionaram. Usa as DORES e OBJEÇÕES do ICP.
+
+3. **Reposicionamento** (1-2 parágrafos):
+   Apresenta a NOVA forma de ver o problema (a tese do território). É o "aha moment" — o leitor enxerga diferente.
+
+4. **Apresentação do método/oferta** (2-3 parágrafos):
+   Usa o nome do método EXATAMENTE como está em method_name (se vazio, fala do método sem nomear). Explica como ele resolve o que as soluções óbvias não resolvem. Conecta com o core_promise.
+
+5. **Mecanismo / por que funciona** (2 parágrafos):
+   Explica logicamente por que o método funciona — peso na lógica do mecanismo, não em prova social inventada.
+
+6. **Bônus + Garantia** (1-2 parágrafos):
+   Lista os bônus reais da oferta + garantia. Reverte risco.
+
+7. **Escassez / urgência** (1 parágrafo):
+   Usa a escassez real da oferta (vagas, prazo). Sem deadline fake.
+
+8. **Fechamento + CTA** (1-2 parágrafos):
+   Resume a transformação prometida. Convida pra próxima ação. Sem clichês ("não perca essa oportunidade única").
+
+LIMITES:
+- 800 a 1500 palavras (suficiente pra VSL de 8-12 minutos).
+- Texto corrido em parágrafos. Pode usar quebras de linha entre blocos pra respiração.
+- SEM markdown, SEM bullets visíveis no texto final, SEM cabeçalhos numerados.
+- Linguagem na VOZ DA MARCA (palavras a usar, palavras a evitar).
+- Tom de carta pessoal — escrita pra UMA pessoa do ICP, não pra "vocês".
+
+Responda APENAS com o texto da carta de vendas. Nada antes, nada depois.`;
+
+  return { system, user: "Gere a carta de vendas." };
+}

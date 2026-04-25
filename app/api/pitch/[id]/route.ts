@@ -16,6 +16,8 @@ export async function PATCH(
     };
     if ("pitch_text" in body) patch.pitch_text = body.pitch_text;
     if ("answers" in body) patch.answers = body.answers;
+    if ("elevator_pitch_text" in body) patch.elevator_pitch_text = body.elevator_pitch_text;
+    if ("carta_vendas_text" in body) patch.carta_vendas_text = body.carta_vendas_text;
 
     const supabase = await createClient();
     const { data, error } = await supabase

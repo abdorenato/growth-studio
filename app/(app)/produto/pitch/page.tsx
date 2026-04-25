@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Copy, Sparkles, RefreshCw, Save, Trash2 } from "lucide-react";
+import { Copy, Sparkles, RefreshCw, Save, Trash2, Mic, Mail } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +20,8 @@ type SavedPitch = {
   icp_id: string | null;
   answers: Answer[];
   pitch_text: string;
+  elevator_pitch_text?: string | null;
+  carta_vendas_text?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -41,6 +43,14 @@ export default function PitchPage() {
 
   const [savedPitches, setSavedPitches] = useState<SavedPitch[]>([]);
   const [currentPitchId, setCurrentPitchId] = useState<string | null>(null);
+
+  // Artefatos derivados do pitch salvo (so visiveis quando ha pitch salvo)
+  const [elevatorText, setElevatorText] = useState("");
+  const [cartaText, setCartaText] = useState("");
+  const [loadingElevator, setLoadingElevator] = useState(false);
+  const [loadingCarta, setLoadingCarta] = useState(false);
+  const [savingElevator, setSavingElevator] = useState(false);
+  const [savingCarta, setSavingCarta] = useState(false);
 
   // ── Carregar ICPs + Ofertas ─────
   useEffect(() => {
@@ -90,6 +100,8 @@ export default function PitchPage() {
       setAnswers(data.answers || []);
       setPitch(data.pitch || "");
       setCurrentPitchId(null); // não está editando um existente
+      setElevatorText(""); // novo pitch -> reseta artefatos
+      setCartaText("");
     } catch {
       toast.error("Erro ao gerar pitch.");
     } finally {
@@ -165,8 +177,75 @@ export default function PitchPage() {
     setCurrentPitchId(sp.id);
     setAnswers(sp.answers || []);
     setPitch(sp.pitch_text || "");
+    setElevatorText(sp.elevator_pitch_text || "");
+    setCartaText(sp.carta_vendas_text || "");
     if (sp.icp_id) setIcpId(sp.icp_id);
     toast.success("Pitch carregado pra edição.");
+  };
+
+  // ── Gerar elevator pitch / carta de vendas ─────
+  const handleDerive = async (kind: "elevator" | "carta") => {
+    if (!currentPitchId) {
+      return toast.error("Salve o pitch principal antes de gerar derivados.");
+    }
+    if (kind === "elevator") setLoadingElevator(true);
+    else setLoadingCarta(true);
+    try {
+      const resp = await fetch(`/api/pitch/${currentPitchId}/derive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind }),
+      });
+      if (!resp.ok) throw new Error();
+      const data = await resp.json();
+      if (kind === "elevator") setElevatorText(data.text || "");
+      else setCartaText(data.text || "");
+      toast.success(
+        kind === "elevator" ? "Elevator pitch gerado!" : "Carta de vendas gerada!"
+      );
+    } catch {
+      toast.error("Erro ao gerar.");
+    } finally {
+      if (kind === "elevator") setLoadingElevator(false);
+      else setLoadingCarta(false);
+    }
+  };
+
+  // ── Salvar elevator / carta no banco ─────
+  const handleSaveDerived = async (kind: "elevator" | "carta") => {
+    if (!currentPitchId) return;
+    const text = kind === "elevator" ? elevatorText : cartaText;
+    if (!text.trim()) return toast.error("Nada pra salvar.");
+    if (kind === "elevator") setSavingElevator(true);
+    else setSavingCarta(true);
+    try {
+      const body =
+        kind === "elevator"
+          ? { elevator_pitch_text: text }
+          : { carta_vendas_text: text };
+      const resp = await fetch(`/api/pitch/${currentPitchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) throw new Error();
+      const data = await resp.json();
+      // sincroniza lista
+      setSavedPitches((prev) =>
+        prev.map((p) => (p.id === currentPitchId ? data.pitch : p))
+      );
+      toast.success("Salvo!");
+    } catch {
+      toast.error("Erro ao salvar.");
+    } finally {
+      if (kind === "elevator") setSavingElevator(false);
+      else setSavingCarta(false);
+    }
+  };
+
+  const copyText = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copiado!");
   };
 
   // ── Deletar ─────
@@ -180,6 +259,8 @@ export default function PitchPage() {
         setCurrentPitchId(null);
         setPitch("");
         setAnswers([]);
+        setElevatorText("");
+        setCartaText("");
       }
       toast.success("Pitch apagado.");
     } catch {
@@ -378,7 +459,137 @@ export default function PitchPage() {
           </Card>
         </div>
       )}
+
+      {/* ── Artefatos derivados (so com pitch salvo) ── */}
+      {currentPitchId && (
+        <>
+          <Separator />
+
+          <div>
+            <h2 className="text-lg font-semibold">📦 Versões deste pitch</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Geradas a partir do pitch salvo acima. Edite e salve cada uma
+              separadamente.
+            </p>
+          </div>
+
+          {/* Elevator pitch */}
+          <DerivedBlock
+            icon={<Mic className="h-4 w-4" />}
+            title="Elevator pitch"
+            subtitle="Versão curta pra falar em ~30 segundos (70-100 palavras)."
+            text={elevatorText}
+            onChange={setElevatorText}
+            onGenerate={() => handleDerive("elevator")}
+            onSave={() => handleSaveDerived("elevator")}
+            onCopy={() => copyText(elevatorText)}
+            generating={loadingElevator}
+            saving={savingElevator}
+            rows={6}
+          />
+
+          {/* Carta de vendas */}
+          <DerivedBlock
+            icon={<Mail className="h-4 w-4" />}
+            title="Carta de vendas"
+            subtitle="Long form (800-1500 palavras) — base pra email longo ou roteiro de VSL."
+            text={cartaText}
+            onChange={setCartaText}
+            onGenerate={() => handleDerive("carta")}
+            onSave={() => handleSaveDerived("carta")}
+            onCopy={() => copyText(cartaText)}
+            generating={loadingCarta}
+            saving={savingCarta}
+            rows={20}
+          />
+        </>
+      )}
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// Bloco visual reutilizado pra elevator e carta de vendas
+// ─────────────────────────────────────────────────────────
+function DerivedBlock({
+  icon,
+  title,
+  subtitle,
+  text,
+  onChange,
+  onGenerate,
+  onSave,
+  onCopy,
+  generating,
+  saving,
+  rows,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  text: string;
+  onChange: (v: string) => void;
+  onGenerate: () => void;
+  onSave: () => void;
+  onCopy: () => void;
+  generating: boolean;
+  saving: boolean;
+  rows: number;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-3">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-start gap-2 min-w-0">
+            <div className="mt-0.5 text-primary">{icon}</div>
+            <div className="min-w-0">
+              <h3 className="font-semibold">{title}</h3>
+              <p className="text-xs text-muted-foreground">{subtitle}</p>
+            </div>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onGenerate}
+              disabled={generating || saving}
+            >
+              {text ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {generating ? "Regerando..." : "Regerar"}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {generating ? "Gerando..." : "Gerar com IA"}
+                </>
+              )}
+            </Button>
+            {text && (
+              <>
+                <Button size="sm" variant="ghost" onClick={onCopy}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button size="sm" onClick={onSave} disabled={saving || generating}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {saving ? "Salvando..." : "Salvar"}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {text && (
+          <Textarea
+            value={text}
+            onChange={(e) => onChange(e.target.value)}
+            rows={rows}
+            className="text-sm leading-relaxed"
+          />
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
