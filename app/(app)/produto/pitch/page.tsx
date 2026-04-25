@@ -83,7 +83,7 @@ export default function PitchPage() {
       const resp = await fetch("/api/pitch/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ icpId, ofertaId }),
+        body: JSON.stringify({ userId: user.id, icpId, ofertaId }),
       });
       if (!resp.ok) throw new Error();
       const data = await resp.json();
@@ -103,7 +103,7 @@ export default function PitchPage() {
       const resp = await fetch("/api/pitch/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ icpId, ofertaId, mode: "final", answers }),
+        body: JSON.stringify({ userId: user.id, icpId, ofertaId, mode: "final", answers }),
       });
       if (!resp.ok) throw new Error();
       const data = await resp.json();

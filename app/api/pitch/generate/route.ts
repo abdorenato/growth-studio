@@ -1,21 +1,26 @@
 import { NextResponse } from "next/server";
 
 import { callClaude, parseJSON } from "@/lib/claude";
-import { getICP } from "@/lib/db/icp";
+import { fetchStrategyContext } from "@/lib/db/strategy-context";
 import { createClient } from "@/lib/supabase/server";
 import { pitchFinalPrompt, pitchPrompt } from "@/lib/prompts/pitch";
 import type { Offer } from "@/types";
 
 export async function POST(req: Request) {
   try {
-    const { icpId, ofertaId, mode, answers } = await req.json();
+    const { userId, icpId, ofertaId, mode, answers } = await req.json();
 
-    if (!icpId || !ofertaId) {
-      return NextResponse.json({ error: "icpId e ofertaId obrigatórios" }, { status: 400 });
+    if (!userId || !icpId || !ofertaId) {
+      return NextResponse.json(
+        { error: "userId, icpId e ofertaId obrigatórios" },
+        { status: 400 }
+      );
     }
 
-    const icp = await getICP(icpId);
-    if (!icp) return NextResponse.json({ error: "ICP não encontrado" }, { status: 404 });
+    // Carrega contexto estratégico completo (voz, posicionamento, território, ICP).
+    // Não atrelar oferta automaticamente — vamos buscar a específica do pitch abaixo.
+    const ctx = await fetchStrategyContext(userId, icpId, { atrelarOferta: false });
+    if (!ctx) return NextResponse.json({ error: "ICP não encontrado" }, { status: 404 });
 
     const supabase = await createClient();
     const { data: oferta } = await supabase
@@ -27,12 +32,12 @@ export async function POST(req: Request) {
     if (!oferta) return NextResponse.json({ error: "Oferta não encontrada" }, { status: 404 });
 
     if (mode === "final") {
-      const { system, user } = pitchFinalPrompt(icp, oferta as Offer, answers);
+      const { system, user } = pitchFinalPrompt(ctx, oferta as Offer, answers);
       const text = await callClaude(system, user, 2000);
       return NextResponse.json({ pitch: text });
     }
 
-    const { system, user } = pitchPrompt(icp, oferta as Offer);
+    const { system, user } = pitchPrompt(ctx, oferta as Offer);
     const text = await callClaude(system, user, 3000);
     const result = parseJSON(text);
     return NextResponse.json(result);
