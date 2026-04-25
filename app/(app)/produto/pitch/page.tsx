@@ -460,18 +460,32 @@ export default function PitchPage() {
         </div>
       )}
 
-      {/* ── Artefatos derivados (so com pitch salvo) ── */}
-      {currentPitchId && (
+      {/* ── Artefatos derivados ── */}
+      {pitch && (
         <>
           <Separator />
 
           <div>
             <h2 className="text-lg font-semibold">📦 Versões deste pitch</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Geradas a partir do pitch salvo acima. Edite e salve cada uma
-              separadamente.
+              Geradas a partir do pitch acima. Edite e salve cada uma separadamente.
             </p>
           </div>
+
+          {!currentPitchId && (
+            <Card className="border-amber-500/40 bg-amber-500/5">
+              <CardContent className="p-4 text-sm">
+                <span className="font-medium text-amber-700 dark:text-amber-400">
+                  ⚠️ Salve o pitch principal primeiro
+                </span>
+                <p className="text-muted-foreground mt-1">
+                  Pra gerar o elevator pitch e a carta de vendas, clique em{" "}
+                  <b>Salvar pitch</b> acima. Isso cria o registro no banco que serve
+                  de âncora pras versões derivadas.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Elevator pitch */}
           <DerivedBlock
@@ -485,6 +499,7 @@ export default function PitchPage() {
             onCopy={() => copyText(elevatorText)}
             generating={loadingElevator}
             saving={savingElevator}
+            disabled={!currentPitchId}
             rows={6}
           />
 
@@ -500,6 +515,7 @@ export default function PitchPage() {
             onCopy={() => copyText(cartaText)}
             generating={loadingCarta}
             saving={savingCarta}
+            disabled={!currentPitchId}
             rows={20}
           />
         </>
@@ -523,6 +539,7 @@ function DerivedBlock({
   generating,
   saving,
   rows,
+  disabled = false,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -535,6 +552,7 @@ function DerivedBlock({
   generating: boolean;
   saving: boolean;
   rows: number;
+  disabled?: boolean;
 }) {
   return (
     <Card>
@@ -552,7 +570,7 @@ function DerivedBlock({
               size="sm"
               variant="outline"
               onClick={onGenerate}
-              disabled={generating || saving}
+              disabled={generating || saving || disabled}
             >
               {text ? (
                 <>
@@ -571,7 +589,7 @@ function DerivedBlock({
                 <Button size="sm" variant="ghost" onClick={onCopy}>
                   <Copy className="h-4 w-4" />
                 </Button>
-                <Button size="sm" onClick={onSave} disabled={saving || generating}>
+                <Button size="sm" onClick={onSave} disabled={saving || generating || disabled}>
                   <Save className="mr-2 h-4 w-4" />
                   {saving ? "Salvando..." : "Salvar"}
                 </Button>
