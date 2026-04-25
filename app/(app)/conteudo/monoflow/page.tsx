@@ -57,6 +57,7 @@ export default function MonoflowPage() {
   const [ofertaEmFoco, setOfertaEmFoco] = useState<any>(null);
   const [editoriaId, setEditoriaId] = useState<string>("");
   const [targetStage, setTargetStage] = useState<string>("");
+  const [contentIds, setContentIds] = useState<Record<string, string>>({});
 
   useEffect(() => {
     (async () => {
@@ -175,6 +176,30 @@ export default function MonoflowPage() {
     setContents(newContents);
     setGenerating({} as any);
     updateProgress("conteudos", true);
+
+    // Persistir tudo no Supabase pra poder editar/salvar depois
+    try {
+      const items = Object.entries(newContents).map(([platform, data]) => ({
+        platform,
+        data,
+      }));
+      const saveResp = await fetch("/api/conteudos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, items }),
+      });
+      if (saveResp.ok) {
+        const saveData = await saveResp.json();
+        const ids: Record<string, string> = {};
+        for (const row of saveData.items || []) {
+          ids[row.platform] = row.id;
+        }
+        setContentIds(ids);
+      }
+    } catch {
+      // não bloqueia — usuário ainda vê os conteúdos
+    }
+
     toast.success(`${Object.keys(newContents).length} conteúdos gerados!`);
     // Foca na primeira aba gerada
     const firstKey = Object.keys(newContents)[0] as Platform;
@@ -183,6 +208,32 @@ export default function MonoflowPage() {
 
   const togglePlatform = (key: Platform) => {
     setSelectedPlatforms((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Atualiza conteúdo no estado (sem salvar ainda)
+  const updateContent = (platform: string, newData: any) => {
+    setContents((prev) => ({ ...prev, [platform]: newData }));
+  };
+
+  // Salva edições do conteúdo no Supabase
+  const saveContent = async (platform: string) => {
+    const id = contentIds[platform];
+    const data = contents[platform];
+    if (!id || !data) {
+      toast.error("Esse conteúdo não foi salvo automaticamente. Regere.");
+      return;
+    }
+    try {
+      const resp = await fetch(`/api/conteudos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data }),
+      });
+      if (!resp.ok) throw new Error();
+      toast.success("Edições salvas!");
+    } catch {
+      toast.error("Erro ao salvar.");
+    }
   };
 
   if (icps.length === 0) {
@@ -361,7 +412,13 @@ export default function MonoflowPage() {
 
             {PLATFORMS.filter((p) => contents[p.key]).map((p) => (
               <TabsContent key={p.key} value={p.key}>
-                <PlatformCard platform={p.key} data={contents[p.key]} />
+                <PlatformCard
+                  platform={p.key}
+                  data={contents[p.key]}
+                  onChange={(newData) => updateContent(p.key, newData)}
+                  onSave={() => saveContent(p.key)}
+                  saved={Boolean(contentIds[p.key])}
+                />
               </TabsContent>
             ))}
           </Tabs>
@@ -380,23 +437,28 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function PlatformCard({ platform, data }: { platform: Platform; data: any }) {
+function PlatformCard({
+  platform,
+  data,
+  onChange,
+  onSave,
+  saved,
+}: {
+  platform: Platform;
+  data: any;
+  onChange: (newData: any) => void;
+  onSave: () => void;
+  saved: boolean;
+}) {
   const copyText = formatCopyText(platform, data);
   return (
     <Card>
       <CardContent className="p-6 space-y-4">
-        {platform === "reels" && <ReelsView data={data} />}
-        {platform === "post" && <PostView data={data} />}
-        {platform === "carousel" && <CarouselView data={data} />}
-        {platform === "stories" && <StoriesView data={data} />}
-        {platform === "linkedin" && <LinkedInView data={data} />}
-        {platform === "tiktok" && <TiktokView data={data} />}
-
-        <Separator />
-
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <Label>📋 Copiar tudo</Label>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            ✏️ Edite qualquer campo abaixo. Salve quando terminar.
+          </p>
+          <div className="flex gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -407,63 +469,211 @@ function PlatformCard({ platform, data }: { platform: Platform; data: any }) {
             >
               <Copy className="mr-2 h-4 w-4" /> Copiar
             </Button>
+            {saved && (
+              <Button size="sm" onClick={onSave}>
+                💾 Salvar edições
+              </Button>
+            )}
           </div>
-          <Textarea value={copyText} readOnly rows={8} className="font-mono text-xs" />
         </div>
+
+        <Separator />
+
+        {platform === "reels" && <ReelsView data={data} onChange={onChange} />}
+        {platform === "post" && <PostView data={data} onChange={onChange} />}
+        {platform === "carousel" && <CarouselView data={data} onChange={onChange} />}
+        {platform === "stories" && <StoriesView data={data} onChange={onChange} />}
+        {platform === "linkedin" && <LinkedInView data={data} onChange={onChange} />}
+        {platform === "tiktok" && <TiktokView data={data} onChange={onChange} />}
       </CardContent>
     </Card>
   );
 }
 
-function ReelsView({ data }: { data: any }) {
+// Helper: small label
+function MiniLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="space-y-3">
-      <h3 className="font-semibold">📹 {data.title}</h3>
-      <p><b>Duração:</b> {data.duration}</p>
-      <p><b>🪝 Hook:</b> {data.hook}</p>
-      <div>
-        <p className="font-medium mb-2">Cenas:</p>
-        <div className="space-y-2">
-          {(data.scenes || []).map((s: any, i: number) => (
-            <div key={i} className="grid grid-cols-[80px_1fr_1fr] gap-2 text-sm">
-              <code className="text-xs">{s.time}</code>
-              <div>{s.action}</div>
-              <div className="text-muted-foreground">📝 {s.text_overlay}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <p><b>📢 CTA:</b> {data.cta}</p>
-      <p><b>🎵 Áudio:</b> {data.audio_suggestion}</p>
-      {data.trend_tip && <p className="text-sm bg-muted p-2 rounded">💡 {data.trend_tip}</p>}
+    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+      {children}
+    </Label>
+  );
+}
+
+function HashtagsField({
+  hashtags,
+  onChange,
+}: {
+  hashtags: string[];
+  onChange: (h: string[]) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <MiniLabel>Hashtags (separadas por vírgula)</MiniLabel>
+      <Input
+        value={(hashtags || []).join(", ")}
+        onChange={(e) =>
+          onChange(
+            e.target.value
+              .split(",")
+              .map((h) => h.trim().replace(/^#/, ""))
+              .filter(Boolean)
+          )
+        }
+        placeholder="hashtag1, hashtag2"
+      />
     </div>
   );
 }
 
-function PostView({ data }: { data: any }) {
+function ReelsView({
+  data,
+  onChange,
+}: {
+  data: any;
+  onChange: (d: any) => void;
+}) {
+  const set = (patch: any) => onChange({ ...data, ...patch });
+  const updateScene = (i: number, patch: any) => {
+    const scenes = [...(data.scenes || [])];
+    scenes[i] = { ...scenes[i], ...patch };
+    set({ scenes });
+  };
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <h3 className="font-semibold">📹 Reels</h3>
+
+      <div className="grid md:grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <MiniLabel>Título interno</MiniLabel>
+          <Input value={data.title || ""} onChange={(e) => set({ title: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <MiniLabel>Duração</MiniLabel>
+          <Input value={data.duration || ""} onChange={(e) => set({ duration: e.target.value })} />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <MiniLabel>Hook (3s iniciais)</MiniLabel>
+        <Textarea rows={2} value={data.hook || ""} onChange={(e) => set({ hook: e.target.value })} />
+      </div>
+
+      <div className="space-y-2">
+        <MiniLabel>Cenas</MiniLabel>
+        {(data.scenes || []).map((s: any, i: number) => (
+          <div key={i} className="grid grid-cols-1 md:grid-cols-[100px_1fr_1fr] gap-2 p-2 border rounded">
+            <Input
+              value={s.time || ""}
+              onChange={(e) => updateScene(i, { time: e.target.value })}
+              placeholder="0-3s"
+              className="text-xs font-mono"
+            />
+            <Textarea
+              rows={2}
+              value={s.action || ""}
+              onChange={(e) => updateScene(i, { action: e.target.value })}
+              placeholder="Ação"
+              className="text-sm"
+            />
+            <Textarea
+              rows={2}
+              value={s.text_overlay || ""}
+              onChange={(e) => updateScene(i, { text_overlay: e.target.value })}
+              placeholder="Texto na tela"
+              className="text-sm"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-1">
+        <MiniLabel>CTA</MiniLabel>
+        <Input value={data.cta || ""} onChange={(e) => set({ cta: e.target.value })} />
+      </div>
+
+      <div className="space-y-1">
+        <MiniLabel>Legenda</MiniLabel>
+        <Textarea rows={4} value={data.caption || ""} onChange={(e) => set({ caption: e.target.value })} />
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <MiniLabel>Áudio sugerido</MiniLabel>
+          <Input value={data.audio_suggestion || ""} onChange={(e) => set({ audio_suggestion: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <MiniLabel>Dica de trend</MiniLabel>
+          <Input value={data.trend_tip || ""} onChange={(e) => set({ trend_tip: e.target.value })} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PostView({
+  data,
+  onChange,
+}: {
+  data: any;
+  onChange: (d: any) => void;
+}) {
+  const set = (patch: any) => onChange({ ...data, ...patch });
+  return (
+    <div className="space-y-4">
       <h3 className="font-semibold">📸 Post Instagram</h3>
-      <div className="whitespace-pre-wrap bg-muted p-3 rounded text-sm">{data.caption}</div>
-      {data.hashtags && (
-        <p className="text-xs">#️⃣ {data.hashtags.map((h: string) => `#${h}`).join(" ")}</p>
-      )}
-      {data.best_time && <p className="text-sm"><b>⏰ Melhor horário:</b> {data.best_time}</p>}
-      {data.headline_on_image && (
-        <p className="text-sm"><b>📝 Título na imagem:</b> {data.headline_on_image}</p>
-      )}
-      {data.image_suggestion && (
-        <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
-          🖼️ {data.image_suggestion}
+
+      <div className="space-y-1">
+        <MiniLabel>Legenda (até 2200 chars)</MiniLabel>
+        <Textarea
+          rows={8}
+          value={data.caption || ""}
+          onChange={(e) => set({ caption: e.target.value })}
+        />
+        <p className="text-[10px] text-muted-foreground text-right">
+          {(data.caption || "").length} / 2200
         </p>
-      )}
+      </div>
+
+      <HashtagsField
+        hashtags={data.hashtags || []}
+        onChange={(h) => set({ hashtags: h })}
+      />
+
+      <div className="grid md:grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <MiniLabel>Melhor horário</MiniLabel>
+          <Input value={data.best_time || ""} onChange={(e) => set({ best_time: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <MiniLabel>Título na imagem</MiniLabel>
+          <Input
+            value={data.headline_on_image || ""}
+            onChange={(e) => set({ headline_on_image: e.target.value })}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <MiniLabel>Sugestão de imagem (briefing)</MiniLabel>
+        <Textarea
+          rows={2}
+          value={data.image_suggestion || ""}
+          onChange={(e) => set({ image_suggestion: e.target.value })}
+        />
+      </div>
+
       {data.image_keywords?.length > 0 && (
         <>
           <Separator />
+          <p className="text-xs text-muted-foreground">
+            🖼️ A imagem se atualiza ao vivo com o título acima.
+          </p>
           <ImageRender
             kind="post"
             keywords={data.image_keywords}
-            singleHeadline={data.headline_on_image || (data.caption || "").slice(0, 60)}
+            singleHeadline={
+              data.headline_on_image || (data.caption || "").slice(0, 60)
+            }
             singleBody=""
           />
         </>
@@ -472,97 +682,268 @@ function PostView({ data }: { data: any }) {
   );
 }
 
-function CarouselView({ data }: { data: any }) {
+function CarouselView({
+  data,
+  onChange,
+}: {
+  data: any;
+  onChange: (d: any) => void;
+}) {
+  const set = (patch: any) => onChange({ ...data, ...patch });
+  const updateSlide = (i: number, patch: any) => {
+    const slides = [...(data.slides || [])];
+    slides[i] = { ...slides[i], ...patch };
+    set({ slides });
+  };
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <h3 className="font-semibold">🎠 Carrossel</h3>
-      <div className="grid md:grid-cols-2 gap-3">
+
+      <div className="space-y-3">
+        <MiniLabel>Slides (edite o texto, a imagem regera automaticamente)</MiniLabel>
         {(data.slides || []).map((slide: any, i: number) => (
-          <div key={i} className="p-3 border rounded space-y-1">
+          <div key={i} className="p-3 border rounded space-y-2">
             <p className="text-xs text-muted-foreground">
-              Slide {slide.index + 1} • {slide.slide_type}
+              Slide {(slide.index ?? i) + 1} • {slide.slide_type}
             </p>
-            <p className="font-semibold">{slide.headline}</p>
-            {slide.body && <p className="text-sm text-muted-foreground">{slide.body}</p>}
+            <Input
+              value={slide.headline || ""}
+              onChange={(e) => updateSlide(i, { headline: e.target.value })}
+              placeholder="Headline do slide"
+              className="font-semibold"
+            />
+            <Textarea
+              rows={2}
+              value={slide.body || ""}
+              onChange={(e) => updateSlide(i, { body: e.target.value })}
+              placeholder="Body (opcional)"
+              className="text-sm"
+            />
           </div>
         ))}
       </div>
-      <p><b>📝 Legenda:</b></p>
-      <div className="whitespace-pre-wrap bg-muted p-3 rounded text-sm">{data.caption}</div>
-      {data.hashtags && (
-        <p className="text-xs">#️⃣ {data.hashtags.map((h: string) => `#${h}`).join(" ")}</p>
-      )}
+
+      <div className="space-y-1">
+        <MiniLabel>Legenda do carrossel</MiniLabel>
+        <Textarea
+          rows={5}
+          value={data.caption || ""}
+          onChange={(e) => set({ caption: e.target.value })}
+        />
+      </div>
+
+      <HashtagsField
+        hashtags={data.hashtags || []}
+        onChange={(h) => set({ hashtags: h })}
+      />
+
       {data.image_keywords?.length > 0 && (
         <>
           <Separator />
-          <ImageRender kind="carousel" keywords={data.image_keywords} slides={data.slides || []} />
+          <p className="text-xs text-muted-foreground">
+            🎨 Os slides se atualizam ao vivo com os textos acima.
+          </p>
+          <ImageRender
+            kind="carousel"
+            keywords={data.image_keywords}
+            slides={data.slides || []}
+          />
         </>
       )}
     </div>
   );
 }
 
-function StoriesView({ data }: { data: any }) {
+function StoriesView({
+  data,
+  onChange,
+}: {
+  data: any;
+  onChange: (d: any) => void;
+}) {
+  const set = (patch: any) => onChange({ ...data, ...patch });
+  const updateStory = (i: number, patch: any) => {
+    const stories = [...(data.stories || [])];
+    stories[i] = { ...stories[i], ...patch };
+    set({ stories });
+  };
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <h3 className="font-semibold">📱 Stories</h3>
-      {data.strategy && <p className="text-sm bg-muted p-2 rounded">🎯 {data.strategy}</p>}
+
+      <div className="space-y-1">
+        <MiniLabel>Estratégia geral da sequência</MiniLabel>
+        <Textarea
+          rows={2}
+          value={data.strategy || ""}
+          onChange={(e) => set({ strategy: e.target.value })}
+        />
+      </div>
+
       {(data.stories || []).map((s: any, i: number) => (
-        <div key={i} className="border rounded p-3 space-y-1">
+        <div key={i} className="border rounded p-3 space-y-2">
           <p className="text-xs text-muted-foreground">
-            Story {s.order} • {s.type?.toUpperCase()}
+            Story {s.order ?? i + 1} • {s.type?.toUpperCase() || "TEXTO"}
           </p>
-          <p>{s.text}</p>
+          <Textarea
+            rows={2}
+            value={s.text || ""}
+            onChange={(e) => updateStory(i, { text: e.target.value })}
+            placeholder="Texto principal"
+          />
           {s.sticker && (
-            <p className="text-sm">
-              <b>🏷️ {s.sticker.type}:</b> {s.sticker.question}
+            <div className="space-y-1">
+              <MiniLabel>Sticker — pergunta/enquete</MiniLabel>
+              <Input
+                value={s.sticker.question || ""}
+                onChange={(e) =>
+                  updateStory(i, {
+                    sticker: { ...s.sticker, question: e.target.value },
+                  })
+                }
+                placeholder="Pergunta"
+              />
               {s.sticker.options && (
-                <span className="ml-2 text-muted-foreground">
-                  ({s.sticker.options.join(" | ")})
-                </span>
+                <Input
+                  value={(s.sticker.options || []).join(", ")}
+                  onChange={(e) =>
+                    updateStory(i, {
+                      sticker: {
+                        ...s.sticker,
+                        options: e.target.value
+                          .split(",")
+                          .map((o) => o.trim())
+                          .filter(Boolean),
+                      },
+                    })
+                  }
+                  placeholder="Opções (separadas por vírgula)"
+                />
               )}
-            </p>
+            </div>
           )}
-          {s.visual_tip && <p className="text-xs text-muted-foreground">🎨 {s.visual_tip}</p>}
+          <Input
+            value={s.visual_tip || ""}
+            onChange={(e) => updateStory(i, { visual_tip: e.target.value })}
+            placeholder="Dica visual"
+            className="text-xs"
+          />
         </div>
       ))}
     </div>
   );
 }
 
-function LinkedInView({ data }: { data: any }) {
+function LinkedInView({
+  data,
+  onChange,
+}: {
+  data: any;
+  onChange: (d: any) => void;
+}) {
+  const set = (patch: any) => onChange({ ...data, ...patch });
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <h3 className="font-semibold">💼 LinkedIn</h3>
-      <div className="whitespace-pre-wrap bg-muted p-3 rounded text-sm">{data.post}</div>
-      {data.hashtags && (
-        <p className="text-xs">#️⃣ {data.hashtags.map((h: string) => `#${h}`).join(" ")}</p>
-      )}
+
+      <div className="space-y-1">
+        <MiniLabel>Post completo</MiniLabel>
+        <Textarea
+          rows={12}
+          value={data.post || ""}
+          onChange={(e) => set({ post: e.target.value })}
+        />
+      </div>
+
+      <HashtagsField
+        hashtags={data.hashtags || []}
+        onChange={(h) => set({ hashtags: h })}
+      />
     </div>
   );
 }
 
-function TiktokView({ data }: { data: any }) {
+function TiktokView({
+  data,
+  onChange,
+}: {
+  data: any;
+  onChange: (d: any) => void;
+}) {
+  const set = (patch: any) => onChange({ ...data, ...patch });
+  const updateScene = (i: number, patch: any) => {
+    const scenes = [...(data.scenes || [])];
+    scenes[i] = { ...scenes[i], ...patch };
+    set({ scenes });
+  };
   return (
-    <div className="space-y-3">
-      <h3 className="font-semibold">🎵 {data.title}</h3>
-      <p><b>Duração:</b> {data.duration}</p>
-      <p><b>🪝 Hook:</b> {data.hook}</p>
-      <div>
-        <p className="font-medium mb-2">Cenas:</p>
-        <div className="space-y-2">
-          {(data.scenes || []).map((s: any, i: number) => (
-            <div key={i} className="grid grid-cols-[80px_1fr_1fr] gap-2 text-sm">
-              <code className="text-xs">{s.time}</code>
-              <div>{s.action}</div>
-              <div className="text-muted-foreground">📝 {s.text_overlay}</div>
-            </div>
-          ))}
+    <div className="space-y-4">
+      <h3 className="font-semibold">🎵 TikTok</h3>
+
+      <div className="grid md:grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <MiniLabel>Título interno</MiniLabel>
+          <Input value={data.title || ""} onChange={(e) => set({ title: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <MiniLabel>Duração</MiniLabel>
+          <Input value={data.duration || ""} onChange={(e) => set({ duration: e.target.value })} />
         </div>
       </div>
-      <p><b>📢 CTA:</b> {data.cta}</p>
-      <p><b>🎵 Som:</b> {data.sound_suggestion}</p>
-      {data.tiktok_tips && <p className="text-sm bg-muted p-2 rounded">💡 {data.tiktok_tips}</p>}
+
+      <div className="space-y-1">
+        <MiniLabel>Hook (2s iniciais)</MiniLabel>
+        <Textarea rows={2} value={data.hook || ""} onChange={(e) => set({ hook: e.target.value })} />
+      </div>
+
+      <div className="space-y-2">
+        <MiniLabel>Cenas</MiniLabel>
+        {(data.scenes || []).map((s: any, i: number) => (
+          <div key={i} className="grid grid-cols-1 md:grid-cols-[100px_1fr_1fr] gap-2 p-2 border rounded">
+            <Input
+              value={s.time || ""}
+              onChange={(e) => updateScene(i, { time: e.target.value })}
+              placeholder="0-2s"
+              className="text-xs font-mono"
+            />
+            <Textarea
+              rows={2}
+              value={s.action || ""}
+              onChange={(e) => updateScene(i, { action: e.target.value })}
+              placeholder="Ação"
+              className="text-sm"
+            />
+            <Textarea
+              rows={2}
+              value={s.text_overlay || ""}
+              onChange={(e) => updateScene(i, { text_overlay: e.target.value })}
+              placeholder="Texto na tela"
+              className="text-sm"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-1">
+        <MiniLabel>CTA</MiniLabel>
+        <Input value={data.cta || ""} onChange={(e) => set({ cta: e.target.value })} />
+      </div>
+
+      <div className="space-y-1">
+        <MiniLabel>Legenda</MiniLabel>
+        <Textarea rows={4} value={data.caption || ""} onChange={(e) => set({ caption: e.target.value })} />
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <MiniLabel>Som sugerido</MiniLabel>
+          <Input value={data.sound_suggestion || ""} onChange={(e) => set({ sound_suggestion: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <MiniLabel>Dicas TikTok</MiniLabel>
+          <Input value={data.tiktok_tips || ""} onChange={(e) => set({ tiktok_tips: e.target.value })} />
+        </div>
+      </div>
     </div>
   );
 }
