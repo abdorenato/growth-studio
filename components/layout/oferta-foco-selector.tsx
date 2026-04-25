@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Target } from "lucide-react";
+import { Target, ChevronDown, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import { useUserStore } from "@/hooks/use-user-store";
 
 type Oferta = {
@@ -32,12 +31,12 @@ export function OfertaFocoSelector() {
         setOfertas(listData.ofertas || []);
         setFocoId(focoData.oferta?.id || null);
       } catch {
-        // silencia — se falhar, só não mostra seletor
+        // silencia
       }
     })();
   }, [user?.id]);
 
-  if (!user?.id || ofertas.length === 0) return null;
+  if (!user?.id) return null;
 
   const ofertaAtual = ofertas.find((o) => o.id === focoId);
 
@@ -65,56 +64,83 @@ export function OfertaFocoSelector() {
   };
 
   return (
-    <div className="px-4 py-2">
-      <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+    <div className="px-3 py-2.5">
+      <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1 px-1">
         Oferta em foco
       </div>
+
+      {/* Dropdown trigger */}
       <button
         onClick={() => setExpanded(!expanded)}
         disabled={loading}
-        className="flex items-center gap-2 w-full text-left text-sm font-medium px-2 py-1.5 rounded hover:bg-accent transition"
+        className="flex items-center justify-between gap-2 w-full text-left px-2.5 py-1.5 rounded-md border bg-background hover:border-primary/40 hover:bg-accent transition-all"
       >
-        <Target className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
-        <span className="truncate">
-          {ofertaAtual?.name || "Nenhuma (conteúdo livre)"}
-        </span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Target
+            className={`h-3.5 w-3.5 flex-shrink-0 ${
+              ofertaAtual ? "text-primary" : "text-muted-foreground"
+            }`}
+          />
+          <span
+            className={`text-xs truncate ${
+              ofertaAtual ? "font-medium" : "text-muted-foreground"
+            }`}
+          >
+            {ofertaAtual?.name || "Conteúdo livre"}
+          </span>
+        </div>
+        <ChevronDown
+          className={`h-3.5 w-3.5 text-muted-foreground transition-transform flex-shrink-0 ${
+            expanded ? "rotate-180" : ""
+          }`}
+        />
       </button>
 
+      {/* Dropdown content */}
       {expanded && (
-        <div className="mt-2 space-y-1">
+        <div className="mt-1.5 border rounded-md bg-background overflow-hidden shadow-sm">
           <button
             onClick={() => setFoco(null)}
             disabled={loading}
-            className={`block w-full text-left text-xs px-2 py-1.5 rounded transition ${
+            className={`flex items-center justify-between w-full text-left text-xs px-2.5 py-1.5 transition ${
               !focoId
                 ? "bg-primary/10 text-primary font-medium"
                 : "hover:bg-accent"
             }`}
           >
-            — Nenhuma (conteúdo livre)
+            <span>— Conteúdo livre</span>
+            {!focoId && <span className="text-[10px]">✓</span>}
           </button>
-          {ofertas.map((o) => (
-            <button
-              key={o.id}
-              onClick={() => setFoco(o.id)}
-              disabled={loading}
-              className={`block w-full text-left text-xs px-2 py-1.5 rounded transition ${
-                focoId === o.id
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "hover:bg-accent"
-              }`}
+          {ofertas.length > 0 && (
+            <div className="border-t">
+              {ofertas.map((o) => (
+                <button
+                  key={o.id}
+                  onClick={() => setFoco(o.id)}
+                  disabled={loading}
+                  className={`flex items-center justify-between w-full text-left text-xs px-2.5 py-1.5 transition ${
+                    focoId === o.id
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "hover:bg-accent"
+                  }`}
+                >
+                  <span className="truncate">{o.name}</span>
+                  {focoId === o.id && (
+                    <span className="text-[10px] flex-shrink-0">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="border-t">
+            <a
+              href="/produto/oferta"
+              className="flex items-center gap-1.5 w-full text-[11px] px-2.5 py-1.5 hover:bg-accent transition text-muted-foreground"
             >
-              {o.name}
-            </button>
-          ))}
-          <Button
-            size="sm"
-            variant="ghost"
-            className="w-full justify-start text-xs h-7"
-            onClick={() => (window.location.href = "/produto/oferta")}
-          >
-            + Gerenciar ofertas
-          </Button>
+              <Plus className="h-3 w-3" />
+              {ofertas.length > 0 ? "Gerenciar ofertas" : "Criar primeira oferta"}
+            </a>
+          </div>
         </div>
       )}
     </div>
