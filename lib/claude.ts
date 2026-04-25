@@ -39,6 +39,7 @@ export async function callClaude(
 export function parseJSON<T = unknown>(text: string): T {
   let cleaned = text.trim();
 
+  // Strip ```json ... ``` ou ``` ... ``` wrappers
   if (cleaned.startsWith("```")) {
     const lines = cleaned.split("\n");
     const jsonLines: string[] = [];
@@ -51,8 +52,25 @@ export function parseJSON<T = unknown>(text: string): T {
       if (line.trim() === "```" && inside) break;
       if (inside) jsonLines.push(line);
     }
-    cleaned = jsonLines.join("\n");
+    cleaned = jsonLines.join("\n").trim();
   }
 
-  return JSON.parse(cleaned) as T;
+  // Tenta parse direto
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    // Fallback: extrai primeiro bloco {...} ou [...] da string,
+    // pra casos em que o LLM enfia preambulo/posambulo
+    const objMatch = cleaned.match(/\{[\s\S]*\}/);
+    const arrMatch = cleaned.match(/\[[\s\S]*\]/);
+    const candidate = objMatch?.[0] || arrMatch?.[0];
+    if (candidate) {
+      return JSON.parse(candidate) as T;
+    }
+    // Re-throw original com mais contexto
+    const preview = cleaned.slice(0, 200);
+    throw new Error(
+      `parseJSON falhou. Preview da resposta: "${preview}${cleaned.length > 200 ? "..." : ""}"`
+    );
+  }
 }

@@ -33,7 +33,8 @@ export async function POST(req: Request) {
     }
 
     const { system, user } = bioPrompt(ctx, platform);
-    const text = await callClaude(system, user, 400);
+    // Bio é curta (max 220 char no LinkedIn), mas dou folga pro reasoning interno.
+    const text = await callClaude(system, user, 800);
 
     return NextResponse.json({ text: text.trim() });
   } catch (err) {

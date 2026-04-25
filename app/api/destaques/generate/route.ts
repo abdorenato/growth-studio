@@ -42,8 +42,26 @@ export async function POST(req: Request) {
     }>;
 
     const { system, user } = destaquesPrompt(ctx, editorias);
-    const text = await callClaude(system, user, 3000);
-    const result = parseJSON(text);
+    // 8-12 destaques com 4 campos texto cada pode passar de 3000 facil.
+    // 6000 da folga sem custo perceptivel.
+    const text = await callClaude(system, user, 6000);
+
+    let result;
+    try {
+      result = parseJSON(text);
+    } catch (parseErr) {
+      console.error("Destaques generate: parseJSON falhou", {
+        parseErr,
+        textPreview: text.slice(0, 500),
+      });
+      return NextResponse.json(
+        {
+          error: "IA retornou resposta em formato invalido. Tente regerar.",
+          debug: { preview: text.slice(0, 300) },
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(result);
   } catch (err) {
