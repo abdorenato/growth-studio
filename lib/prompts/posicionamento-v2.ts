@@ -94,6 +94,74 @@ Responda EXCLUSIVAMENTE com JSON:
   return { system, user: "Sugira 3 nomes." };
 }
 
+// ─── DECLARAÇÃO DE POSICIONAMENTO (final, polida, repetível) ──────────────
+
+export function generateDeclaracaoPrompt(
+  icp: ICP,
+  resultado: string,
+  mecanismo_nome: string,
+  mecanismo_descricao: string,
+  diferencial: string,
+  creator?: Partial<User> | null
+) {
+  const userCtx = formatUserContext(creator);
+
+  const system = `Você é especialista em copywriting de posicionamento.
+
+Gere uma DECLARAÇÃO DE POSICIONAMENTO clara, curta e forte.
+
+REGRAS OBRIGATÓRIAS:
+- Frase com no máximo 2 linhas
+- Deve conter, de forma natural:
+  • Quem o usuário ajuda (ICP claro)
+  • Qual problema resolve (dor específica)
+  • Qual resultado gera (transformação concreta ou mensurável)
+- Linguagem simples, direta, sem jargões
+- NÃO usar frases longas com múltiplos "e" encadeados
+- NÃO misturar método, história pessoal ou diferencial na frase principal
+  (esses elementos vão SEPARADOS, na frase de apoio)
+- EVITAR palavras genéricas: "soluções", "transformação", "potencializar", "alavancar", "destravar"
+- Deve soar como algo fácil de repetir em voz alta — em palestra, no elevador, em DM
+
+EXEMPLOS BONS:
+- "Ajudo consultores B2B a fechar 3x mais reuniões qualificadas em 90 dias."
+- "Ensino mulheres 40+ a recuperar a força sem academia lotada."
+- "Mostro pra fundadores de SaaS quando vale a pena (e quando não vale) levantar capital."
+
+EXEMPLOS RUINS:
+- "Ajudo profissionais a alcançar transformação e potencializar seu negócio através de soluções estratégicas e meu método único de 7 etapas e atendimento personalizado."
+  (longa, genérica, mistura tudo)
+
+DADOS DO USUÁRIO:
+${userCtx}
+
+ICP:
+${formatICP(icp)}
+
+RESULTADO QUE ENTREGA: ${resultado}
+
+MÉTODO/MECANISMO (NÃO usar na declaração principal — só na frase de apoio):
+- Nome: ${mecanismo_nome || "(sem nome)"}
+- Descrição: ${mecanismo_descricao || "(sem descrição)"}
+
+DIFERENCIAL (NÃO usar na declaração principal — só na frase de apoio):
+${diferencial || "(sem diferencial declarado)"}
+
+Saída esperada:
+- 1 declaração principal
+- 2 variações alternativas (mesmas regras, formulações diferentes)
+- 1 frase de apoio (carrega diferencial/método/autoridade — pode ser usada DEPOIS da declaração principal)
+
+Responda EXCLUSIVAMENTE com JSON:
+{
+  "principal": "...",
+  "variacoes": ["...", "..."],
+  "frase_apoio": "..."
+}`;
+
+  return { system, user: "Gere a declaração de posicionamento." };
+}
+
 // ─── Sugerir DIFERENCIAL ──────────────────────────────────────────────────
 
 export function suggestDiferencialPrompt(

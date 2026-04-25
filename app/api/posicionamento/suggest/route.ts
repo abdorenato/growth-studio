@@ -8,6 +8,7 @@ import {
   suggestResultadoPrompt,
   nameMecanismoPrompt,
   suggestDiferencialPrompt,
+  generateDeclaracaoPrompt,
   type DiferencialCategoria,
 } from "@/lib/prompts/posicionamento-v2";
 
@@ -19,6 +20,15 @@ type Body =
       userId: string;
       icpId: string;
       categoria: DiferencialCategoria;
+    }
+  | {
+      kind: "declaracao";
+      userId: string;
+      icpId: string;
+      resultado: string;
+      mecanismo_nome: string;
+      mecanismo_descricao: string;
+      diferencial: string;
     };
 
 export async function POST(req: Request) {
@@ -64,6 +74,19 @@ export async function POST(req: Request) {
         voz?.mapa_voz || null,
         voz?.respostas || null,
         body.categoria,
+        creator
+      );
+      const text = await callClaude(system, user, 1500);
+      return NextResponse.json(parseJSON(text));
+    }
+
+    if (body.kind === "declaracao") {
+      const { system, user } = generateDeclaracaoPrompt(
+        icp,
+        body.resultado,
+        body.mecanismo_nome,
+        body.mecanismo_descricao,
+        body.diferencial,
         creator
       );
       const text = await callClaude(system, user, 1500);

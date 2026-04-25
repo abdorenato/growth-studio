@@ -54,6 +54,10 @@ type State = {
   mecanismo_nome: string;
   diferencial_categoria: DiferencialCat | "";
   diferencial_frase: string;
+  // Declaração polida pela IA
+  declaracao_principal: string;
+  declaracao_variacoes: string[];
+  frase_apoio: string;
 };
 
 const EMPTY: State = {
@@ -63,6 +67,9 @@ const EMPTY: State = {
   mecanismo_nome: "",
   diferencial_categoria: "",
   diferencial_frase: "",
+  declaracao_principal: "",
+  declaracao_variacoes: [],
+  frase_apoio: "",
 };
 
 export default function PosicionamentoPage() {
@@ -107,6 +114,9 @@ export default function PosicionamentoPage() {
             mecanismo_nome: posData.mecanismo_nome || "",
             diferencial_categoria: posData.diferencial_categoria || "",
             diferencial_frase: posData.diferencial_frase || "",
+            declaracao_principal: posData.frase || "",
+            declaracao_variacoes: [],
+            frase_apoio: posData.frase_apoio || "",
           });
           if (posData.frase) {
             updateProgress("posicionamento", true);
@@ -205,7 +215,44 @@ export default function PosicionamentoPage() {
     }
   };
 
+  // Gera a declaração polida (1 principal + 2 variações + frase de apoio)
+  const generateDeclaracao = async () => {
+    setLoading(true);
+    try {
+      const resp = await fetch("/api/posicionamento/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "declaracao",
+          userId: user.id,
+          icpId: state.icp_id,
+          resultado: state.resultado,
+          mecanismo_nome: state.mecanismo_nome,
+          mecanismo_descricao: state.mecanismo_descricao,
+          diferencial: state.diferencial_frase,
+        }),
+      });
+      if (!resp.ok) throw new Error();
+      const data = await resp.json();
+      setState((s) => ({
+        ...s,
+        declaracao_principal: data.principal || "",
+        declaracao_variacoes: data.variacoes || [],
+        frase_apoio: data.frase_apoio || "",
+      }));
+      toast.success("Declaração gerada!");
+    } catch {
+      toast.error("Erro ao gerar declaração.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSave = async () => {
+    if (!state.declaracao_principal.trim()) {
+      toast.error("Gere a declaração antes de salvar.");
+      return;
+    }
     setLoading(true);
     try {
       const resp = await fetch("/api/posicionamento", {
@@ -213,7 +260,8 @@ export default function PosicionamentoPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.id,
-          frase: fraseMontada,
+          frase: state.declaracao_principal,
+          frase_apoio: state.frase_apoio,
           icp_id: state.icp_id,
           resultado: state.resultado,
           mecanismo_descricao: state.mecanismo_descricao,
@@ -573,52 +621,139 @@ export default function PosicionamentoPage() {
                 <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
               </Button>
               <Button
-                onClick={handleSave}
+                onClick={() => setStep(5)}
                 disabled={!state.diferencial_frase.trim() || loading}
               >
-                <Check className="mr-2 h-4 w-4" />
-                {loading ? "Salvando..." : "Salvar e ver resultado"}
+                Continuar <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* ETAPA 5: REVISÃO + IMAGEM */}
+      {/* ETAPA 5: DECLARAÇÃO POLIDA + REVISÃO + IMAGEM */}
       {step === 5 && (
         <div className="space-y-6">
           <Card>
             <CardContent className="p-6 space-y-4">
-              <h2 className="text-xl font-semibold">🎉 Seu posicionamento</h2>
-              <p className="text-lg">
-                <i>&quot;{fraseMontada}&quot;</i>
-              </p>
-
-              <Separator />
-
-              <h3 className="text-sm font-semibold">🖼️ Seu story pra postar</h3>
-              <div className="max-w-xs mx-auto">
-                <Image
-                  src={renderURL()}
-                  alt="Meu posicionamento"
-                  width={320}
-                  height={569}
-                  className="w-full rounded-xl border shadow-lg"
-                  unoptimized
-                />
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-semibold">📍 Sua declaração de posicionamento</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Curta, clara, repetível em voz alta. Diferencial e método ficam separados em &quot;frase de apoio&quot;.
+                  </p>
+                </div>
               </div>
 
-              <div className="flex gap-3 justify-center">
-                <Button variant="outline" onClick={() => setStep(1)}>
-                  <RotateCcw className="mr-2 h-4 w-4" /> Refazer
-                </Button>
-                <Button onClick={downloadImage}>
-                  <Download className="mr-2 h-4 w-4" /> Baixar imagem
-                </Button>
-                <Button variant="outline" onClick={() => router.push("/dashboard")}>
-                  Voltar ao Dashboard
-                </Button>
-              </div>
+              {/* Botão pra gerar (ou regerar) */}
+              <Button
+                onClick={generateDeclaracao}
+                disabled={loading}
+                variant={state.declaracao_principal ? "outline" : "default"}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {loading
+                  ? "Gerando..."
+                  : state.declaracao_principal
+                    ? "Regerar declaração"
+                    : "Gerar declaração com IA"}
+              </Button>
+
+              {/* Declaração principal + variações */}
+              {state.declaracao_principal && (
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Declaração principal
+                    </Label>
+                    <Textarea
+                      value={state.declaracao_principal}
+                      onChange={(e) =>
+                        setState((s) => ({ ...s, declaracao_principal: e.target.value }))
+                      }
+                      rows={2}
+                      className="text-base font-medium"
+                    />
+                  </div>
+
+                  {state.declaracao_variacoes.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                        Variações alternativas (clique pra usar)
+                      </Label>
+                      {state.declaracao_variacoes.map((v, i) => (
+                        <Card
+                          key={i}
+                          className="cursor-pointer hover:border-primary/50 transition"
+                          onClick={() =>
+                            setState((s) => ({ ...s, declaracao_principal: v }))
+                          }
+                        >
+                          <CardContent className="p-3 text-sm italic">
+                            &ldquo;{v}&rdquo;
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Frase de apoio (diferencial / autoridade — usa depois da principal)
+                    </Label>
+                    <Textarea
+                      value={state.frase_apoio}
+                      onChange={(e) =>
+                        setState((s) => ({ ...s, frase_apoio: e.target.value }))
+                      }
+                      rows={2}
+                      className="text-sm"
+                      placeholder="Ex: Faço isso através do Método D3, que combina diagnóstico em 3 camadas..."
+                    />
+                  </div>
+
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button variant="outline" onClick={() => setStep(4)}>
+                      <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+                    </Button>
+                    <Button onClick={handleSave} disabled={loading}>
+                      <Check className="mr-2 h-4 w-4" />
+                      {loading ? "Salvando..." : "Confirmar e salvar"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Story visual — só aparece após salvar */}
+              {state.declaracao_principal && (
+                <>
+                  <Separator />
+
+                  <h3 className="text-sm font-semibold">🖼️ Seu story pra postar</h3>
+                  <div className="max-w-xs mx-auto">
+                    <Image
+                      src={renderURL()}
+                      alt="Meu posicionamento"
+                      width={320}
+                      height={569}
+                      className="w-full rounded-xl border shadow-lg"
+                      unoptimized
+                    />
+                  </div>
+
+                  <div className="flex gap-3 justify-center flex-wrap">
+                    <Button variant="outline" onClick={() => setStep(1)}>
+                      <RotateCcw className="mr-2 h-4 w-4" /> Refazer
+                    </Button>
+                    <Button onClick={downloadImage}>
+                      <Download className="mr-2 h-4 w-4" /> Baixar imagem
+                    </Button>
+                    <Button variant="outline" onClick={() => router.push("/dashboard")}>
+                      Voltar ao Dashboard
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

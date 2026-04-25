@@ -22,6 +22,7 @@ export async function POST(req: Request) {
     const {
       userId,
       frase,
+      frase_apoio,
       icp_id,
       resultado,
       mecanismo_descricao,
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
       {
         user_id: userId,
         frase,
+        frase_apoio: frase_apoio || null,
         icp_id: icp_id || null,
         resultado: resultado || null,
         mecanismo_descricao: mecanismo_descricao || null,
