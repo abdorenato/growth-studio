@@ -46,6 +46,31 @@ export type Progress = {
   icp: boolean;
   oferta: boolean;
   pitch: boolean;
+  bio: boolean;
+  destaques: boolean;
+};
+
+export type BioPlatform = "instagram" | "tiktok" | "linkedin";
+
+export type Bio = {
+  id?: string;
+  user_id?: string;
+  platform: BioPlatform;
+  bio_text: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type Destaque = {
+  id?: string;
+  user_id?: string;
+  nome: string;
+  descricao?: string;
+  conteudo_sugerido?: string;
+  capa_sugerida?: string;
+  ordem?: number;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type ICP = {

@@ -73,7 +73,7 @@ export async function registerLead(
 export async function getFullProgress(userId: string): Promise<Progress> {
   const supabase = await createClient();
 
-  const [voz, pos, ter, eds, ids, cts, icps, ofs] = await Promise.all([
+  const [voz, pos, ter, eds, ids, cts, icps, ofs, bios, dest] = await Promise.all([
     supabase.from("vozes").select("user_id").eq("user_id", userId).maybeSingle(),
     supabase
       .from("posicionamentos")
@@ -90,6 +90,8 @@ export async function getFullProgress(userId: string): Promise<Progress> {
     supabase.from("conteudos").select("id").eq("user_id", userId).limit(1),
     supabase.from("icps").select("id").eq("user_id", userId).limit(1),
     supabase.from("ofertas").select("id").eq("user_id", userId).limit(1),
+    supabase.from("bios").select("id").eq("user_id", userId).limit(1),
+    supabase.from("destaques").select("id").eq("user_id", userId).limit(1),
   ]);
 
   return {
@@ -102,5 +104,7 @@ export async function getFullProgress(userId: string): Promise<Progress> {
     icp: (icps.data?.length ?? 0) > 0,
     oferta: (ofs.data?.length ?? 0) > 0,
     pitch: false,
+    bio: (bios.data?.length ?? 0) > 0,
+    destaques: (dest.data?.length ?? 0) > 0,
   };
 }

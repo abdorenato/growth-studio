@@ -109,5 +109,25 @@ export function buildNav(progress: Partial<Progress>): NavGroup[] {
         },
       ],
     },
+    {
+      title: "Presença",
+      icon: "🪪",
+      items: [
+        {
+          key: "bio",
+          title: "Bio",
+          icon: "🪪",
+          href: "/presenca/bio",
+          locked: !progress.posicionamento,
+        },
+        {
+          key: "destaques",
+          title: "Destaques",
+          icon: "⭐",
+          href: "/presenca/destaques",
+          locked: !progress.editorias,
+        },
+      ],
+    },
   ];
 }
