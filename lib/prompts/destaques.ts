@@ -48,7 +48,7 @@ ESTRUTURA QUE FUNCIONA EM PERFIS PROFISSIONAIS:
 REGRAS POR DESTAQUE:
 - nome: 8-12 caracteres MAX (cabe no balão do destaque). Direto, identitário, na voz do criador. Pode usar emoji curto (1 só).
 - descricao: 1-2 frases sobre O QUE vai dentro desse destaque, em linguagem prática.
-- conteudo_sugerido: 3-5 stories sugeridos pra montar esse destaque, separados por "; ". Concretos, não conceituais.
+- conteudo_sugerido: 3-5 stories sugeridos pra montar esse destaque. Cada story em uma linha separada, com numeração no inicio. Formato exato: "1. <story curto>\n2. <story curto>\n3. <story curto>". Use \n de verdade no JSON. Stories concretos, não conceituais (ex: "Tela do CRM antes/depois", "Print de mensagem do cliente", não "falar sobre processo").
 - capa_sugerida: ideia de capa em 1 linha — cor dominante + ícone/elemento + conceito (ex: "Preto e branco com ícone de gráfico — minimalista" ou "Bege + foto sua olhando pra câmera").
 - ordem: número de 1 a N indicando ordem ideal (1 = primeiro destaque, mais à esquerda).
 

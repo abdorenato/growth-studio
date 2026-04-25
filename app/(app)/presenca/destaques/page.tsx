@@ -21,6 +21,17 @@ type LocalDestaque = Destaque & {
   _saving?: boolean;
 };
 
+// Normaliza conteudo_sugerido pra exibicao/storage: quebra "; " em linhas.
+// Cobre dados gerados antes do prompt novo, que usavam separador ;.
+function normalizeStoriesPure(raw: string | undefined | null): string {
+  if (!raw) return "";
+  if (raw.includes("\n")) return raw; // ja esta em linhas
+  return raw
+    .replace(/;\s*(Story\s*\d+\s*:)/gi, "\n$1")
+    .replace(/;\s*(\d+\.\s)/g, "\n$1")
+    .replace(/;\s+/g, "\n");
+}
+
 export default function DestaquesPage() {
   const user = useUserStore((s) => s.user)!;
   const updateProgress = useUserStore((s) => s.updateProgress);
@@ -46,7 +57,13 @@ export default function DestaquesPage() {
         setIcps(icpList);
         if (icpList[0]) setSelectedICP(icpList[0].id);
 
-        setItems((dData.destaques || []) as LocalDestaque[]);
+        // Normaliza conteudo_sugerido na carga: dados antigos vem com "; " separador,
+        // converte pra \n pra ficar legivel direto e auto-limpar no proximo save.
+        const loaded = ((dData.destaques || []) as LocalDestaque[]).map((d) => ({
+          ...d,
+          conteudo_sugerido: normalizeStoriesPure(d.conteudo_sugerido),
+        }));
+        setItems(loaded);
       } catch {
         // silencia
       }
@@ -74,10 +91,11 @@ export default function DestaquesPage() {
       if (!resp.ok) throw new Error();
       const data = await resp.json();
       const generated = (data.destaques || []) as Destaque[];
-      // marca como _isNew (nao salvos ainda)
+      // marca como _isNew (nao salvos ainda) + normaliza stories
       setItems(
         generated.map((d, i) => ({
           ...d,
+          conteudo_sugerido: normalizeStoriesPure(d.conteudo_sugerido),
           ordem: typeof d.ordem === "number" ? d.ordem : i + 1,
           _isNew: true,
         }))
@@ -97,6 +115,7 @@ export default function DestaquesPage() {
       return copy;
     });
   };
+
 
   const moveItem = (index: number, dir: -1 | 1) => {
     const target = index + dir;
@@ -322,15 +341,16 @@ export default function DestaquesPage() {
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">
-                        Stories sugeridos
+                        Stories sugeridos (1 por linha)
                       </Label>
                       <Textarea
                         value={d.conteudo_sugerido || ""}
                         onChange={(e) =>
                           updateField(i, "conteudo_sugerido", e.target.value)
                         }
-                        rows={2}
-                        placeholder="3-5 stories pra montar esse destaque"
+                        rows={5}
+                        placeholder={"1. Tela do CRM antes/depois\n2. Print de mensagem do cliente\n3. ..."}
+                        className="font-mono text-xs"
                       />
                     </div>
                   </div>
