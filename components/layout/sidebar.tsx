@@ -15,6 +15,13 @@ import { cn } from "@/lib/utils";
 
 export function Sidebar() {
   const user = useUserStore((s) => s.user);
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Fecha o drawer mobile sempre que a rota mudar
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   if (!user) return null;
 
@@ -25,9 +32,9 @@ export function Sidebar() {
         <SidebarContent />
       </aside>
 
-      {/* Mobile: trigger no topo + Sheet */}
+      {/* Mobile: trigger no topo + Sheet (controlado pra fechar ao navegar) */}
       <div className="md:hidden sticky top-0 z-40 flex items-center gap-2 px-4 py-3 bg-card border-b">
-        <Sheet>
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="Menu">
               <Menu className="h-5 w-5" />
@@ -35,7 +42,7 @@ export function Sidebar() {
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-80 overflow-y-auto">
             <SheetTitle className="sr-only">Menu</SheetTitle>
-            <SidebarContent />
+            <SidebarContent onNavigate={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>
         <div className="flex items-center gap-2">
@@ -47,7 +54,7 @@ export function Sidebar() {
   );
 }
 
-function SidebarContent() {
+function SidebarContent({ onNavigate }: { onNavigate?: () => void } = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const user = useUserStore((s) => s.user);
@@ -83,7 +90,13 @@ function SidebarContent() {
       {/* Navegação com grupos colapsáveis */}
       <nav className="px-3 py-4 space-y-2">
         {groups.map((group) => (
-          <NavGroupItem key={group.title} group={group} pathname={pathname} progress={progress} />
+          <NavGroupItem
+            key={group.title}
+            group={group}
+            pathname={pathname}
+            progress={progress}
+            onNavigate={onNavigate}
+          />
         ))}
       </nav>
 
@@ -117,10 +130,12 @@ function NavGroupItem({
   group,
   pathname,
   progress,
+  onNavigate,
 }: {
   group: NavGroup;
   pathname: string;
   progress: Record<string, boolean | undefined>;
+  onNavigate?: () => void;
 }) {
   // "Início" não tem header — renderiza só o(s) item(s) direto
   const isInicio = group.title === "Início";
@@ -193,6 +208,7 @@ function NavGroupItem({
                 ) : (
                   <Link
                     href={item.href}
+                    onClick={() => onNavigate?.()}
                     className={cn(
                       "flex items-center px-3 py-1.5 rounded-md text-sm transition-colors",
                       active

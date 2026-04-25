@@ -15,6 +15,7 @@ import { useUserStore } from "@/hooks/use-user-store";
 export default function HomePage() {
   const router = useRouter();
   const user = useUserStore((s) => s.user);
+  const hasHydrated = useUserStore((s) => s.hasHydrated);
   const setUser = useUserStore((s) => s.setUser);
   const setProgress = useUserStore((s) => s.setProgress);
 
@@ -26,8 +27,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user) router.replace("/dashboard");
-  }, [user, router]);
+    // Só redireciona depois da hidratação
+    if (hasHydrated && user) router.replace("/dashboard");
+  }, [user, hasHydrated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

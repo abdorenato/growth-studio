@@ -13,11 +13,15 @@ export default function AppLayout({
 }) {
   const router = useRouter();
   const user = useUserStore((s) => s.user);
+  const hasHydrated = useUserStore((s) => s.hasHydrated);
 
   useEffect(() => {
-    if (!user) router.replace("/");
-  }, [user, router]);
+    // Só redireciona pra login se a hidratação já terminou e user é null
+    if (hasHydrated && !user) router.replace("/");
+  }, [user, hasHydrated, router]);
 
+  // Enquanto hidrata, não renderiza nada nem redireciona (evita race condition)
+  if (!hasHydrated) return null;
   if (!user) return null;
 
   return (

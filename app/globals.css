@@ -85,3 +85,13 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* iOS faz auto-zoom em inputs com font-size < 16px ao receber foco.
+   Forçamos 16px no mobile pra evitar isso. No desktop, herda o tamanho normal. */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
