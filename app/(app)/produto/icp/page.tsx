@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Sparkles } from "lucide-react";
+import { Pencil, Trash2, Plus, Sparkles, ChevronDown, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -345,32 +345,158 @@ export default function ICPPage() {
 
       <div className="space-y-3">
         {icps.map((icp) => (
-          <Card key={icp.id}>
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg">{icp.name}</h3>
-                  <p className="text-sm text-muted-foreground">{icp.niche}</p>
-                  {icp.pain_points?.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      <b>Dores:</b> {icp.pain_points.slice(0, 3).join(" · ")}
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button size="icon" variant="ghost" onClick={() => handleEdit(icp)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => handleDelete(icp.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ICPCard
+            key={icp.id}
+            icp={icp}
+            onEdit={() => handleEdit(icp)}
+            onDelete={() => handleDelete(icp.id)}
+          />
         ))}
       </div>
     </div>
+  );
+}
+
+// ─── Card expansível de ICP ───────────────────────────────────────────────
+
+function ICPCard({
+  icp,
+  onEdit,
+  onDelete,
+}: {
+  icp: ICPRow;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const demo = icp.demographics || {};
+  const hasDemo = demo.age_range || demo.gender || demo.location;
+
+  return (
+    <Card>
+      <CardContent className="p-0">
+        {/* Cabeçalho clicável */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full text-left px-5 py-4 hover:bg-accent/50 transition-colors"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              {expanded ? (
+                <ChevronDown className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
+              ) : (
+                <ChevronRight className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-lg leading-tight">{icp.name}</h3>
+                <p className="text-sm text-muted-foreground">{icp.niche}</p>
+                {!expanded && icp.pain_points?.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1.5 line-clamp-1">
+                    <b>Dores:</b> {icp.pain_points.slice(0, 3).join(" · ")}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              <Button size="icon" variant="ghost" onClick={onEdit} title="Editar">
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onDelete}
+                title="Apagar"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </button>
+
+        {/* Conteúdo expandido — todos os detalhes */}
+        {expanded && (
+          <div className="px-5 pb-5 pt-1 border-t bg-muted/20 space-y-4">
+            {hasDemo && (
+              <Section title="Demografia">
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {demo.age_range && (
+                    <Tag>Idade: {demo.age_range}</Tag>
+                  )}
+                  {demo.gender && <Tag>Gênero: {demo.gender}</Tag>}
+                  {demo.location && <Tag>Local: {demo.location}</Tag>}
+                </div>
+              </Section>
+            )}
+
+            {icp.pain_points?.length > 0 && (
+              <Section title="🩹 Dores">
+                <List items={icp.pain_points} />
+              </Section>
+            )}
+
+            {icp.desires?.length > 0 && (
+              <Section title="🎯 Desejos">
+                <List items={icp.desires} />
+              </Section>
+            )}
+
+            {icp.objections?.length > 0 && (
+              <Section title="🚫 Objeções">
+                <List items={icp.objections} />
+              </Section>
+            )}
+
+            {icp.language_style && (
+              <Section title="💬 Estilo de linguagem">
+                <p className="text-sm">{icp.language_style}</p>
+              </Section>
+            )}
+
+            {icp.tone_keywords?.length > 0 && (
+              <Section title="🎨 Tom">
+                <div className="flex flex-wrap gap-1.5">
+                  {icp.tone_keywords.map((k, i) => (
+                    <Tag key={i}>{k}</Tag>
+                  ))}
+                </div>
+              </Section>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-xs font-semibold text-muted-foreground mb-1.5">
+        {title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-background border text-xs">
+      {children}
+    </span>
+  );
+}
+
+function List({ items }: { items: string[] }) {
+  return (
+    <ul className="space-y-1">
+      {items.map((item, i) => (
+        <li key={i} className="text-sm flex items-start gap-2">
+          <span className="text-muted-foreground mt-0.5 text-xs">•</span>
+          <span className="flex-1">{item}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
