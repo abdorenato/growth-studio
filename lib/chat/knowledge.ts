@@ -103,5 +103,6 @@ Se o aluno digitar exatamente estes comandos (com /), responda assim:
 /pitch → comece o Pitch
 /recomeçar ou /reset → diga que pra reiniciar voce precisa que ele abra uma nova conversa (a memoria dessa esta acumulada)
 /onde-paramos → faca um resumo do que ja foi gerado nesta conversa
+/contexto ou /debug → (esses dois sao interceptados pelo sistema antes de chegar a voce — voce nao precisa responder)
 
 Para qualquer outra mensagem, conversa normal.`;

@@ -58,6 +58,21 @@ export async function respond(
     getRecentMessages(sessionId, CONTEXT_WINDOW),
     loadAlunoContextForChat(session),
   ]);
+
+  // Log diagnostico (visivel nos logs do Vercel)
+  console.log(
+    `[chat][${sessionId.slice(0, 8)}] email=${session.channel_user_id} user_id=${session.user_id || "null"} ctx=${alunoCtx.hasData}`
+  );
+
+  // ATALHO DE DEBUG — usuario pode digitar /contexto ou /debug pra ver
+  // o que o iAbdo enxerga sobre ele (pula chamada do Claude)
+  const trimmed = userMessage.trim().toLowerCase();
+  if (trimmed === "/contexto" || trimmed === "/debug") {
+    const debugReply = buildDebugReply(session, alunoCtx);
+    await appendMessage(sessionId, "assistant", debugReply);
+    return { reply: debugReply };
+  }
+
   const systemPrompt = alunoCtx.hasData
     ? `${IABDO_SYSTEM_PROMPT}\n${alunoCtx.resumo}`
     : IABDO_SYSTEM_PROMPT;
@@ -94,4 +109,50 @@ export async function respond(
     tokensIn: response.usage?.input_tokens,
     tokensOut: response.usage?.output_tokens,
   };
+}
+
+/**
+ * Resposta do comando /contexto ou /debug — mostra exatamente o que o
+ * iAbdo enxerga sobre o aluno. Usado pra diagnosticar "por que ele nao
+ * lembra de mim?".
+ */
+function buildDebugReply(
+  session: { channel_user_id: string; user_id?: string | null },
+  alunoCtx: { hasData: boolean; resumo: string }
+): string {
+  const lines = [
+    "🔍 DEBUG — o que o iAbdo enxerga sobre você:",
+    "",
+    `Email da sessão: ${session.channel_user_id}`,
+    `User da plataforma vinculado: ${session.user_id ? `SIM (id ${session.user_id.slice(0, 8)}...)` : "NÃO"}`,
+    `Contexto estratégico carregado: ${alunoCtx.hasData ? "SIM" : "NÃO"}`,
+    "",
+  ];
+
+  if (alunoCtx.hasData) {
+    lines.push("─── Contexto que vai pro Claude ───");
+    lines.push("");
+    // Remove os separadores grandes pra ficar mais clean no chat
+    const cleanResumo = alunoCtx.resumo
+      .replace(/═+/g, "─")
+      .trim();
+    lines.push(cleanResumo);
+  } else if (!session.user_id) {
+    lines.push("⚠️ Sem User vinculado.");
+    lines.push("");
+    lines.push("Provavelmente o email que você usou no chat NÃO é o mesmo");
+    lines.push("que você usou pra cadastrar na plataforma do Growth Studio.");
+    lines.push("");
+    lines.push("Solução: faça logout (botão no canto superior) e entre");
+    lines.push("novamente com o MESMO email do seu cadastro na plataforma.");
+  } else {
+    lines.push("⚠️ User vinculado, mas sem dados estratégicos na plataforma.");
+    lines.push("");
+    lines.push("Você está logado como User existente, mas ainda não gerou");
+    lines.push("ICP, voz, posicionamento, etc. na plataforma.");
+    lines.push("");
+    lines.push("Você pode gerar tudo pelo chat também — comece com /voz.");
+  }
+
+  return lines.join("\n");
 }
