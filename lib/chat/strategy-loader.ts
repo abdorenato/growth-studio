@@ -1,20 +1,17 @@
 // Carrega TUDO que o aluno ja tem na plataforma e formata pra injetar
-// no system prompt do iAbdo. Usado no engine antes de chamar Claude.
+// no system prompt do iAbdo. Cada modulo eh OPCIONAL — carrega em paralelo
+// e mostra so o que existe. Nao bail-out se faltar algum (ex: tem voz mas
+// nao tem ICP ainda — voz vai mesmo assim).
 
 import { createClient } from "@/lib/supabase/server";
-import { fetchStrategyContext } from "@/lib/db/strategy-context";
 import type { ChatSession } from "./types";
+import type { MapaVoz } from "@/types";
 
 type AlunoContext = {
-  resumo: string; // bloco pronto pra colar no system prompt
+  resumo: string;
   hasData: boolean;
 };
 
-/**
- * Carrega o que o aluno ja tem na plataforma e formata pra system prompt.
- * Retorna string vazia (e hasData=false) se aluno nao tem nada salvo OU
- * se a sessao nao tem user_id linkado.
- */
 export async function loadAlunoContextForChat(
   session: ChatSession
 ): Promise<AlunoContext> {
@@ -24,59 +21,174 @@ export async function loadAlunoContextForChat(
 
   try {
     const supabase = await createClient();
+    const userId = session.user_id;
 
-    // Pega primeiro ICP do user (se tiver multiplos, usa o mais antigo)
-    const { data: icpRow } = await supabase
-      .from("icps")
-      .select("id")
-      .eq("user_id", session.user_id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (!icpRow) {
-      // Sem ICP, ainda assim tenta carregar info basica do User
-      const { data: userRow } = await supabase
+    // Carrega TODOS os modulos em paralelo, cada um opcional
+    const [
+      userResp,
+      vozResp,
+      icpResp,
+      posResp,
+      terResp,
+      edsResp,
+    ] = await Promise.all([
+      supabase
         .from("users")
-        .select("name, atividade, atividade_descricao, instagram")
-        .eq("id", session.user_id)
+        .select("name, instagram, atividade, atividade_descricao, oferta_em_foco_id")
+        .eq("id", userId)
+        .maybeSingle(),
+      supabase
+        .from("vozes")
+        .select("arquetipo_primario, arquetipo_secundario, mapa_voz")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("icps")
+        .select("name, niche, pain_points, desires, objections")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("posicionamentos")
+        .select("frase, resultado, mecanismo_nome, mecanismo_descricao, diferencial_frase, frase_apoio")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("territorios")
+        .select(
+          "dominio, ancora_mental, lente, manifesto, tese, expansao, fronteiras, fronteiras_positivas, areas_atuacao"
+        )
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("editorias")
+        .select("nome, tipo_objetivo, objetivo, descricao")
+        .eq("user_id", userId),
+    ]);
+
+    const user = userResp.data;
+    if (!user) return { resumo: "", hasData: false };
+
+    // Oferta em foco (se tiver)
+    let oferta: {
+      name?: string;
+      core_promise?: string;
+      method_name?: string;
+      dream?: string;
+    } | null = null;
+    if (user.oferta_em_foco_id) {
+      const { data: ofData } = await supabase
+        .from("ofertas")
+        .select("name, core_promise, method_name, dream")
+        .eq("id", user.oferta_em_foco_id)
         .maybeSingle();
-
-      if (!userRow) return { resumo: "", hasData: false };
-
-      const lines = [
-        `\n═══════════════════════════════════════════`,
-        `DADOS QUE VOCE JA TEM SOBRE ESSE ALUNO`,
-        `═══════════════════════════════════════════`,
-        `Nome: ${userRow.name || "—"}`,
-        userRow.instagram ? `Instagram: @${userRow.instagram}` : "",
-        userRow.atividade ? `Atividade: ${userRow.atividade}` : "",
-        userRow.atividade_descricao
-          ? `O que resolve: ${userRow.atividade_descricao}`
-          : "",
-        `\nESTE ALUNO AINDA NAO TEM DADOS ESTRATEGICOS NA PLATAFORMA.`,
-        `Use o nome dele e ajude do zero.`,
-      ].filter(Boolean);
-
-      return { resumo: lines.join("\n"), hasData: true };
+      oferta = ofData;
     }
 
-    // Tem ICP — carrega contexto completo + editorias
-    const ctx = await fetchStrategyContext(session.user_id, icpRow.id, {
-      atrelarOferta: true,
-    });
-    if (!ctx) return { resumo: "", hasData: false };
+    // Monta o bloco com SO o que existe
+    const blocks: string[] = [];
 
-    // Carrega TODAS editorias do user (fetchStrategyContext so pega 1 por id)
-    const { data: edsData } = await supabase
-      .from("editorias")
-      .select("nome, tipo_objetivo, objetivo, descricao")
-      .eq("user_id", session.user_id);
+    // Quem é (sempre)
+    blocks.push("QUEM É:");
+    blocks.push(`- Nome: ${user.name || "—"}`);
+    if (user.instagram) blocks.push(`- @: @${user.instagram}`);
+    if (user.atividade) blocks.push(`- Atividade: ${user.atividade}`);
+    if (user.atividade_descricao)
+      blocks.push(`- O que resolve: ${user.atividade_descricao}`);
 
-    return {
-      resumo: formatAlunoContextForPrompt(ctx, edsData || []),
-      hasData: true,
-    };
+    // Voz (se tiver)
+    const mapaVoz = (vozResp.data?.mapa_voz as MapaVoz | undefined) || null;
+    if (mapaVoz) {
+      blocks.push("\nVOZ DA MARCA (já gerada):");
+      blocks.push(
+        `- Arquétipos: ${vozResp.data?.arquetipo_primario || "?"} + ${vozResp.data?.arquetipo_secundario || "?"}`
+      );
+      blocks.push(`- Energia: ${mapaVoz.energia_arquetipica}`);
+      blocks.push(`- Tom: ${mapaVoz.tom_de_voz}`);
+      blocks.push(`- Frase essência: "${mapaVoz.frase_essencia}"`);
+      blocks.push(`- Frase impacto: "${mapaVoz.frase_impacto}"`);
+      if (mapaVoz.palavras_usar?.length)
+        blocks.push(`- Palavras a USAR: ${mapaVoz.palavras_usar.join(", ")}`);
+      if (mapaVoz.palavras_evitar?.length)
+        blocks.push(`- Palavras a EVITAR: ${mapaVoz.palavras_evitar.join(", ")}`);
+    }
+
+    // ICP (se tiver)
+    const icp = icpResp.data;
+    if (icp) {
+      blocks.push("\nICP (cliente ideal já gerado):");
+      blocks.push(`- Nome: ${icp.name}`);
+      blocks.push(`- Nicho: ${icp.niche}`);
+      if (Array.isArray(icp.pain_points) && icp.pain_points.length)
+        blocks.push(
+          `- Top dores: ${icp.pain_points.slice(0, 3).join(" | ")}`
+        );
+      if (Array.isArray(icp.desires) && icp.desires.length)
+        blocks.push(`- Top desejos: ${icp.desires.slice(0, 3).join(" | ")}`);
+      if (Array.isArray(icp.objections) && icp.objections.length)
+        blocks.push(
+          `- Top objeções: ${icp.objections.slice(0, 3).join(" | ")}`
+        );
+    }
+
+    // Posicionamento (se tiver)
+    const pos = posResp.data;
+    if (pos?.frase) {
+      blocks.push("\nPOSICIONAMENTO (já gerado):");
+      blocks.push(`- Declaração: "${pos.frase}"`);
+      if (pos.frase_apoio) blocks.push(`- Frase apoio: "${pos.frase_apoio}"`);
+      if (pos.resultado) blocks.push(`- Resultado: ${pos.resultado}`);
+      if (pos.mecanismo_nome) blocks.push(`- Método: ${pos.mecanismo_nome}`);
+      if (pos.diferencial_frase) blocks.push(`- Diferencial: ${pos.diferencial_frase}`);
+    }
+
+    // Território (se tiver)
+    const ter = terResp.data;
+    if (ter && (ter.dominio || ter.ancora_mental || ter.tese)) {
+      blocks.push("\nTERRITÓRIO (já gerado):");
+      if (ter.dominio) blocks.push(`- Domínio: ${ter.dominio}`);
+      if (ter.ancora_mental)
+        blocks.push(`- Âncora mental: "${ter.ancora_mental}"`);
+      if (ter.lente) blocks.push(`- Lente: ${ter.lente}`);
+      if (ter.tese) blocks.push(`- Tese: "${ter.tese}"`);
+      if (ter.expansao) blocks.push(`- Expansão: ${ter.expansao}`);
+      if (Array.isArray(ter.fronteiras) && ter.fronteiras.length)
+        blocks.push(
+          `- Fronteiras NEGATIVAS (não falar sobre): ${ter.fronteiras.join(", ")}`
+        );
+      if (
+        Array.isArray(ter.fronteiras_positivas) &&
+        ter.fronteiras_positivas.length
+      )
+        blocks.push(
+          `- Fronteiras POSITIVAS (defende): ${ter.fronteiras_positivas.join(", ")}`
+        );
+      if (Array.isArray(ter.areas_atuacao) && ter.areas_atuacao.length)
+        blocks.push(`- Áreas de atuação: ${ter.areas_atuacao.join(" | ")}`);
+    }
+
+    // Editorias (se tiver)
+    const editorias = edsResp.data || [];
+    if (editorias.length > 0) {
+      blocks.push(`\nEDITORIAS (${editorias.length} pilares já gerados):`);
+      editorias.forEach((e, i) => {
+        blocks.push(
+          `${i + 1}. ${e.nome} (${e.tipo_objetivo || "?"}) — ${e.objetivo || ""}`
+        );
+      });
+    }
+
+    // Oferta em foco (se tiver)
+    if (oferta) {
+      blocks.push("\nOFERTA EM FOCO (atual):");
+      if (oferta.name) blocks.push(`- Nome: ${oferta.name}`);
+      if (oferta.core_promise) blocks.push(`- Promessa: ${oferta.core_promise}`);
+      if (oferta.method_name) blocks.push(`- Método: ${oferta.method_name}`);
+      if (oferta.dream) blocks.push(`- Sonho: ${oferta.dream}`);
+    }
+
+    return { resumo: blocks.join("\n"), hasData: true };
   } catch (err) {
     console.error("loadAlunoContextForChat erro:", err);
     return { resumo: "", hasData: false };

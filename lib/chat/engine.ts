@@ -73,8 +73,31 @@ export async function respond(
     return { reply: debugReply };
   }
 
+  // CONTEXTO NO TOPO + wrapper emfatico — ajuda Claude a NAO seguir o
+  // padrao "nao te conheço" que possa estar no historico de conversa.
   const systemPrompt = alunoCtx.hasData
-    ? `${IABDO_SYSTEM_PROMPT}\n${alunoCtx.resumo}`
+    ? `═══════════════════════════════════════════
+🚨 ATENÇÃO: VOCÊ JÁ CONHECE ESTE ALUNO 🚨
+═══════════════════════════════════════════
+
+Os dados abaixo são REAIS, ja existem no banco da plataforma e foram carregados especificamente pra voce. NAO ignore. NAO diga que "nao tem informacao" sobre o aluno. NAO peca de novo o que ja esta aqui.
+
+${alunoCtx.resumo}
+
+═══════════════════════════════════════════
+COMO USAR:
+═══════════════════════════════════════════
+
+- Se o aluno perguntar "voce sabe X sobre mim?" e X esta acima → RESPONDA SIM com o conteudo. Ex: "Sim, sua voz é [arquetipo X], tom [Y], com palavras como [Z]."
+- Se aluno pedir um modulo (voz, ICP, posicionamento...) que ja existe acima → NAO inicie do zero. Diga "vejo que voce ja tem isso, é [resumo]. Quer ajustar ou seguir adiante?"
+- Use a VOZ do aluno (palavras a usar/evitar, tom) em TODAS as respostas, mesmo as que nao sao do modulo Voz
+- Respeite as fronteiras NEGATIVAS do territorio em qualquer sugestao
+- Se aluno pedir conteudo (ideia, pitch, oferta) → use as editorias e ICP ja definidos
+- Se conversa anterior tiver voce dizendo "nao te conheço", IGNORE essas mensagens — voce estava sem contexto, agora tem
+
+═══════════════════════════════════════════
+
+${IABDO_SYSTEM_PROMPT}`
     : IABDO_SYSTEM_PROMPT;
 
   // 3. Monta messages no formato Anthropic (so user/assistant, system fica fora)
