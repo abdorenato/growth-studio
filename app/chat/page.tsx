@@ -50,6 +50,7 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomAnchorRef = useRef<HTMLDivElement>(null);
 
   // Hidrata sessao do localStorage
   useEffect(() => {
@@ -88,12 +89,17 @@ export default function ChatPage() {
     })();
   }, [hydrated, stored]);
 
-  // Auto-scroll quando mensagens mudam
+  // Auto-scroll quando mensagens mudam — usa ancora no fim + scrollIntoView
+  // pra esperar o DOM renderizar antes de medir altura.
   useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: "smooth",
+    // requestAnimationFrame garante que o paint ja aconteceu
+    const raf = requestAnimationFrame(() => {
+      bottomAnchorRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
     });
+    return () => cancelAnimationFrame(raf);
   }, [messages, sending]);
 
   const handleEnter = async (e: React.FormEvent) => {
@@ -192,7 +198,7 @@ export default function ChatPage() {
   // ─────────────────────────────────────────────────────────
   if (!hydrated) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+      <div className="min-h-dvh flex items-center justify-center text-muted-foreground">
         Carregando...
       </div>
     );
@@ -200,7 +206,7 @@ export default function ChatPage() {
 
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
+      <div className="min-h-dvh flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="text-6xl mb-2">💬</div>
@@ -276,7 +282,7 @@ export default function ChatPage() {
   // Render: tela de conversa
   // ─────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-dvh flex flex-col bg-background">
       {/* Header */}
       <header className="border-b px-4 py-3 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0">
@@ -325,10 +331,16 @@ export default function ChatPage() {
             </div>
           </div>
         )}
+
+        {/* Ancora pra auto-scroll funcionar no momento certo */}
+        <div ref={bottomAnchorRef} aria-hidden="true" />
       </div>
 
-      {/* Input */}
-      <div className="border-t bg-background px-4 py-3 flex-shrink-0">
+      {/* Input — pb safe-area pro iPhone com notch nao cortar o input */}
+      <div
+        className="border-t bg-background px-4 py-3 flex-shrink-0"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
         <div className="max-w-3xl mx-auto flex gap-2 items-end">
           <Textarea
             value={input}
