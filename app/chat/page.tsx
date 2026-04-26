@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Send, LogOut, Mic, Square } from "lucide-react";
+import { Send, LogOut, Mic, Square, Bot } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -248,7 +248,9 @@ export default function ChatPage() {
       <div className="min-h-dvh flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="text-6xl mb-2">💬</div>
+            <div className="inline-flex items-center justify-center w-20 h-20 mb-3 rounded-2xl bg-primary/10 text-primary">
+              <Bot className="w-12 h-12" strokeWidth={1.75} />
+            </div>
             <h1 className="text-3xl font-bold">iAbdo Chat</h1>
             <p className="text-muted-foreground mt-2">
               Conversa direta com seu estrategista de marca pessoal.
@@ -325,7 +327,9 @@ export default function ChatPage() {
       {/* Header */}
       <header className="border-b px-4 py-3 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="text-xl">💬</div>
+          <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary flex-shrink-0">
+            <Bot className="w-5 h-5" strokeWidth={1.75} />
+          </div>
           <div className="min-w-0">
             <h1 className="font-semibold text-sm">iAbdo Chat</h1>
             <p className="text-xs text-muted-foreground truncate">
@@ -360,8 +364,11 @@ export default function ChatPage() {
         ))}
 
         {sending && (
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-muted text-muted-foreground rounded-lg px-4 py-3 inline-block text-sm">
+          <div className="max-w-3xl mx-auto flex gap-2 items-start">
+            <div className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10 text-primary flex-shrink-0 mt-0.5">
+              <Bot className="w-4 h-4" strokeWidth={1.75} />
+            </div>
+            <div className="bg-muted text-muted-foreground rounded-lg px-4 py-3 text-sm">
               <span className="inline-flex gap-1">
                 <span className="animate-pulse">●</span>
                 <span className="animate-pulse" style={{ animationDelay: "0.2s" }}>●</span>
@@ -434,16 +441,22 @@ export default function ChatPage() {
 function MessageBubble({ message }: { message: ChatMsg }) {
   const isUser = message.role === "user";
 
+  if (isUser) {
+    return (
+      <div className="max-w-3xl mx-auto flex justify-end">
+        <div className="rounded-lg px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed bg-primary text-primary-foreground max-w-[85%]">
+          {message.content}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={"max-w-3xl mx-auto " + (isUser ? "flex justify-end" : "")}>
-      <div
-        className={
-          "rounded-lg px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed " +
-          (isUser
-            ? "bg-primary text-primary-foreground max-w-[85%]"
-            : "bg-muted text-foreground")
-        }
-      >
+    <div className="max-w-3xl mx-auto flex gap-2 items-start">
+      <div className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10 text-primary flex-shrink-0 mt-0.5">
+        <Bot className="w-4 h-4" strokeWidth={1.75} />
+      </div>
+      <div className="rounded-lg px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed bg-muted text-foreground flex-1 min-w-0">
         {message.content}
       </div>
     </div>
