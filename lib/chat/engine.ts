@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { IABDO_SYSTEM_PROMPT } from "./knowledge";
-import { appendMessage, getRecentMessages } from "./memory";
+import { appendMessage, getRecentMessages, getSessionById } from "./memory";
+import { loadAlunoContextForChat } from "./strategy-loader";
 
 // Cliente lazy (mesmo padrao do lib/claude.ts)
 let _client: Anthropic | null = null;
@@ -40,11 +41,26 @@ export async function respond(
     return { reply: "Mensagem vazia. Pode escrever de novo?" };
   }
 
-  // 1. Salva mensagem do usuario
-  await appendMessage(sessionId, "user", userMessage);
+  // 1. Salva mensagem do user + carrega sessao em paralelo
+  const [, session] = await Promise.all([
+    appendMessage(sessionId, "user", userMessage),
+    getSessionById(sessionId),
+  ]);
 
-  // 2. Carrega historico (ja inclui a mensagem que acabou de salvar)
-  const history = await getRecentMessages(sessionId, CONTEXT_WINDOW);
+  if (!session) throw new Error(`Sessao nao encontrada: ${sessionId}`);
+
+  // 2. MODO LEITURA + historico em paralelo:
+  // - history (ja inclui a mensagem que acabou de salvar no passo 1)
+  // - alunoCtx (se sessao tem user_id, carrega contexto estrategico do aluno
+  //   — voz, ICP, posicionamento, territorio, editorias, oferta — pra injetar
+  //   no system prompt. iAbdo "conhece" o aluno.)
+  const [history, alunoCtx] = await Promise.all([
+    getRecentMessages(sessionId, CONTEXT_WINDOW),
+    loadAlunoContextForChat(session),
+  ]);
+  const systemPrompt = alunoCtx.hasData
+    ? `${IABDO_SYSTEM_PROMPT}\n${alunoCtx.resumo}`
+    : IABDO_SYSTEM_PROMPT;
 
   // 3. Monta messages no formato Anthropic (so user/assistant, system fica fora)
   const messages = history
@@ -59,7 +75,7 @@ export async function respond(
   const response = await client.messages.create({
     model: MODEL,
     max_tokens: MAX_OUTPUT_TOKENS,
-    system: IABDO_SYSTEM_PROMPT,
+    system: systemPrompt,
     messages,
   });
 

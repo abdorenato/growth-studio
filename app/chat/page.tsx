@@ -29,6 +29,7 @@ const STORAGE_KEY = "iabdo-chat-session";
 type StoredSession = {
   email: string;
   displayName?: string;
+  instagram?: string;
   sessionId: string;
 };
 
@@ -39,6 +40,7 @@ export default function ChatPage() {
   // Tela de entrada
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [instagram, setInstagram] = useState("");
   const [entering, setEntering] = useState(false);
 
   // Conversa
@@ -71,6 +73,7 @@ export default function ChatPage() {
           body: JSON.stringify({
             email: stored.email,
             displayName: stored.displayName,
+            instagram: stored.instagram,
           }),
         });
         if (!resp.ok) throw new Error();
@@ -101,12 +104,14 @@ export default function ChatPage() {
     }
     setEntering(true);
     try {
+      const insta = instagram.trim().replace(/^@/, "");
       const resp = await fetch("/api/chat/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           displayName: name.trim() || undefined,
+          instagram: insta || undefined,
         }),
       });
       if (!resp.ok) throw new Error();
@@ -117,6 +122,7 @@ export default function ChatPage() {
       const toStore: StoredSession = {
         email: email.trim().toLowerCase(),
         displayName: name.trim() || undefined,
+        instagram: insta || undefined,
         sessionId: data.session.id,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
@@ -178,6 +184,7 @@ export default function ChatPage() {
     setMessages([]);
     setEmail("");
     setName("");
+    setInstagram("");
   };
 
   // ─────────────────────────────────────────────────────────
@@ -233,6 +240,17 @@ export default function ChatPage() {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="instagram">Seu @ do Instagram (opcional)</Label>
+                  <Input
+                    id="instagram"
+                    placeholder="@seuinsta"
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value)}
+                    disabled={entering}
+                  />
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full"
@@ -241,6 +259,11 @@ export default function ChatPage() {
                 >
                   {entering ? "Entrando..." : "Entrar →"}
                 </Button>
+
+                <p className="text-xs text-center text-muted-foreground pt-1">
+                  Ao entrar, você concorda em receber comunicações pelo email
+                  informado.
+                </p>
               </form>
             </CardContent>
           </Card>
