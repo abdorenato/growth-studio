@@ -62,6 +62,7 @@ export async function registerLead(
       instagram,
       atividade: atividade || null,
       atividade_descricao: atividadeDescricao || null,
+      origem: "platform",
     })
     .select()
     .single();
