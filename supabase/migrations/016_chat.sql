@@ -15,6 +15,7 @@ create table if not exists chat_sessions (
 );
 
 alter table chat_sessions enable row level security;
+drop policy if exists "allow_all_chat_sessions" on chat_sessions;
 create policy "allow_all_chat_sessions" on chat_sessions for all using (true) with check (true);
 
 create index if not exists idx_chat_sessions_channel_user on chat_sessions (channel, channel_user_id);
@@ -30,6 +31,7 @@ create table if not exists chat_messages (
 );
 
 alter table chat_messages enable row level security;
+drop policy if exists "allow_all_chat_messages" on chat_messages;
 create policy "allow_all_chat_messages" on chat_messages for all using (true) with check (true);
 
 create index if not exists idx_chat_messages_session_created on chat_messages (session_id, created_at);
