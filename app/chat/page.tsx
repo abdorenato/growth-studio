@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Send, LogOut } from "lucide-react";
+import { Send, LogOut, Mic, Square } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 type ChatMsg = {
   id?: string;
@@ -51,6 +53,42 @@ export default function ChatPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
+
+  // Reconhecimento de voz (Web Speech API)
+  const {
+    isSupported: speechSupported,
+    isListening,
+    transcript: speechTranscript,
+    error: speechError,
+    start: startSpeech,
+    stop: stopSpeech,
+    reset: resetSpeech,
+  } = useSpeechRecognition("pt-BR");
+
+  // Quando comeca a gravar, guarda o que ja tem digitado pra appendar depois
+  const speechPrefixRef = useRef<string>("");
+
+  // Atualiza input em tempo real conforme fala
+  useEffect(() => {
+    if (!isListening) return;
+    const prefix = speechPrefixRef.current;
+    setInput(prefix ? `${prefix} ${speechTranscript}`.trim() : speechTranscript);
+  }, [speechTranscript, isListening]);
+
+  // Mostra erros de voz como toast (so se nao foi cancelamento)
+  useEffect(() => {
+    if (speechError) toast.error(speechError);
+  }, [speechError]);
+
+  const handleMicToggle = () => {
+    if (isListening) {
+      stopSpeech();
+      return;
+    }
+    speechPrefixRef.current = input.trim();
+    resetSpeech();
+    startSpeech();
+  };
 
   // Hidrata sessao do localStorage
   useEffect(() => {
@@ -142,6 +180,7 @@ export default function ChatPage() {
 
   const handleSend = async () => {
     if (!session || !input.trim() || sending) return;
+    if (isListening) stopSpeech(); // se ainda gravando, para
     const text = input.trim();
     setInput("");
 
@@ -351,11 +390,34 @@ export default function ChatPage() {
                 handleSend();
               }
             }}
-            placeholder="Mensagem... (Enter envia, Shift+Enter quebra linha)"
+            placeholder={
+              isListening
+                ? "Ouvindo... fale ou toque no botão pra parar"
+                : "Mensagem... (Enter envia, Shift+Enter quebra linha)"
+            }
             rows={1}
-            className="resize-none min-h-[44px] max-h-32"
+            className={
+              "resize-none min-h-[44px] max-h-32 " +
+              (isListening ? "border-red-500 bg-red-50 dark:bg-red-950/20" : "")
+            }
             disabled={sending}
           />
+          {speechSupported && (
+            <Button
+              size="lg"
+              variant={isListening ? "destructive" : "outline"}
+              onClick={handleMicToggle}
+              disabled={sending}
+              aria-label={isListening ? "Parar gravação" : "Gravar voz"}
+              title={isListening ? "Parar gravação" : "Gravar voz (microfone)"}
+            >
+              {isListening ? (
+                <Square className="h-4 w-4 animate-pulse" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
+            </Button>
+          )}
           <Button
             size="lg"
             onClick={handleSend}
