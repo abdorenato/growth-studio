@@ -277,19 +277,17 @@ export async function GET(req: Request) {
       origem: string | null;
       created_at: string;
     }) => {
-      const counts = await Promise.all(
+      const checks = await Promise.all(
         moduleTables.map(async (t) => {
           const { count: c } = await supabase
             .from(t)
             .select("id", { count: "exact", head: true })
             .eq("user_id", u.id);
-          return c && c > 0 ? 1 : 0;
+          return Boolean(c && c > 0);
         })
       );
-      return {
-        ...u,
-        modulos_completos: counts.reduce((a, b) => a + b, 0),
-      };
+      const modulos_completos = checks.filter(Boolean).length;
+      return { ...u, modulos_completos };
     })
   );
 
@@ -434,10 +432,10 @@ async function calcDistribuicaoManual(
             .from(t)
             .select("id", { count: "exact", head: true })
             .eq("user_id", u.id);
-          return c && c > 0 ? 1 : 0;
+          return Boolean(c && c > 0);
         })
       );
-      return checks.reduce((a, b) => a + b, 0);
+      return checks.filter(Boolean).length;
     })
   );
 
