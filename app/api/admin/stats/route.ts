@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { checkAdminAuth } from "@/lib/admin/auth";
 import { createClient } from "@/lib/supabase/server";
 
+// Tipo simplificado pra passar como parametro nos helpers (evita problemas de
+// inferencia de tipo do Supabase nos generic chains).
+type SupabaseLike = Awaited<ReturnType<typeof createClient>>;
+
 // GET /api/admin/stats?period=24h|7d|30d|all
 //
 // Retorna TODOS os dados que o dashboard precisa em 1 request.
@@ -140,15 +144,8 @@ export async function GET(req: Request) {
   );
 
   // ─── DISTRIBUICAO DE PROFUNDIDADE (modulos completos por user) ──────
-  const distribResp = await supabase.rpc("modulos_por_user").select();
-  let distribuicao: Array<{ count: number; users: number }> = [];
-  if (distribResp.error) {
-    // Sem RPC, faz manual: pra cada user, count quantos modulos tem
-    distribuicao = await calcDistribuicaoManual(supabase);
-  } else if (distribResp.data) {
-    // RPC existe (futuro)
-    distribuicao = distribResp.data as Array<{ count: number; users: number }>;
-  }
+  // Calcula manual: pra cada user, conta quantos modulos tem
+  const distribuicao = await calcDistribuicaoManual(supabase);
 
   // ─── CHAT STATS ──────────────────────────────────────────────────────
   const [totalSessoes, totalMsgs] = await Promise.all([
@@ -361,7 +358,7 @@ function computeCutoff(period: "24h" | "7d" | "30d" | "all"): string | undefined
 }
 
 async function sumTokens(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseLike,
   since: string
 ): Promise<{ in: number; out: number }> {
   const { data } = await supabase
@@ -379,7 +376,7 @@ async function sumTokens(
 }
 
 async function sumCost(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseLike,
   since: string
 ): Promise<number> {
   const { data } = await supabase
@@ -409,7 +406,7 @@ function toISODate(d: Date): string {
 }
 
 async function calcDistribuicaoManual(
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: SupabaseLike
 ): Promise<Array<{ count: number; users: number }>> {
   const moduleTables = [
     "vozes",
