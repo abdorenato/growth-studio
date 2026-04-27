@@ -20,6 +20,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // Bloqueio provisorio: se blocked_at esta setado, nega login
+    if (user.blocked_at) {
+      return NextResponse.json(
+        {
+          error: "Sua conta está temporariamente bloqueada. Entre em contato.",
+          code: "USER_BLOCKED",
+        },
+        { status: 403 }
+      );
+    }
+
     let progress = {};
     try {
       progress = await getFullProgress(user.id);

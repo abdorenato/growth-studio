@@ -6,6 +6,8 @@ export type User = {
   atividade?: string;
   atividade_descricao?: string;
   oferta_em_foco_id?: string | null;
+  origem?: string | null;
+  blocked_at?: string | null;
   created_at?: string;
 };
 

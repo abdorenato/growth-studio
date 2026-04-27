@@ -24,25 +24,34 @@ export async function POST(req: Request) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Se cadastros estao fechados, bloqueia emails NOVOS (que nao existem na
-    // tabela users). Usuarios existentes continuam podendo conversar.
-    if (isRegistrationClosed()) {
-      const supabase = await createClient();
-      const { data: existing } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
+    // Combina 2 checagens em uma so query: existe? esta bloqueado?
+    const supabase = await createClient();
+    const { data: existing } = await supabase
+      .from("users")
+      .select("id, blocked_at")
+      .eq("email", normalizedEmail)
+      .maybeSingle();
 
-      if (!existing) {
-        return NextResponse.json(
-          {
-            error: REGISTRATION_CLOSED_MSG,
-            code: "REGISTRATION_CLOSED",
-          },
-          { status: 403 }
-        );
-      }
+    // Bloqueio individual: se user existe e tem blocked_at, nega
+    if (existing?.blocked_at) {
+      return NextResponse.json(
+        {
+          error: "Sua conta está temporariamente bloqueada.",
+          code: "USER_BLOCKED",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Cadastros fechados: bloqueia emails NOVOS. Existentes (nao bloqueados) passam.
+    if (isRegistrationClosed() && !existing) {
+      return NextResponse.json(
+        {
+          error: REGISTRATION_CLOSED_MSG,
+          code: "REGISTRATION_CLOSED",
+        },
+        { status: 403 }
+      );
     }
 
     const session = await getOrCreateSession("web", normalizedEmail, {
