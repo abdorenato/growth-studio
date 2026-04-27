@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { checkAdminAuth } from "@/lib/admin/auth";
+import { requireAdmin } from "@/lib/admin/auth";
 import { createClient } from "@/lib/supabase/server";
 
 // Tipo simplificado pra passar como parametro nos helpers (evita problemas de
@@ -15,7 +15,8 @@ type SupabaseLike = Awaited<ReturnType<typeof createClient>>;
 // NAO faz cache — admin sempre quer dados frescos.
 
 export async function GET(req: Request) {
-  if (!checkAdminAuth(req)) {
+  const auth = await requireAdmin();
+  if (!auth.ok) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
@@ -263,7 +264,9 @@ export async function GET(req: Request) {
   // ─── LISTA DE LEADS RECENTES ─────────────────────────────────────────
   const { data: recentLeads } = await supabase
     .from("users")
-    .select("id, email, name, instagram, origem, blocked_at, created_at")
+    .select(
+      "id, email, name, instagram, origem, blocked_at, access_status, is_admin, avatar_url, last_login_at, created_at"
+    )
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -276,6 +279,10 @@ export async function GET(req: Request) {
       instagram: string | null;
       origem: string | null;
       blocked_at: string | null;
+      access_status: "pending" | "approved" | "blocked" | null;
+      is_admin: boolean | null;
+      avatar_url: string | null;
+      last_login_at: string | null;
       created_at: string;
     }) => {
       const checks = await Promise.all(

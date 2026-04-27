@@ -1,3 +1,5 @@
+export type AccessStatus = "pending" | "approved" | "blocked";
+
 export type User = {
   id: string;
   email: string;
@@ -6,6 +8,9 @@ export type User = {
   atividade?: string;
   atividade_descricao?: string;
   oferta_em_foco_id?: string | null;
+  avatar_url?: string | null;
+  access_status?: AccessStatus;
+  is_admin?: boolean;
   origem?: string | null;
   blocked_at?: string | null;
   created_at?: string;

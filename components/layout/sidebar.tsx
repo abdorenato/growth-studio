@@ -65,9 +65,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void } = {}) {
 
   const groups = buildNav(progress);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Supabase signOut + limpeza do Zustand
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    await supabase.auth.signOut();
     clear();
-    router.push("/");
+    router.push("/login");
   };
 
   return (

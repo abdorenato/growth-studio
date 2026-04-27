@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { checkAdminAuth, getAdminEmails } from "@/lib/admin/auth";
+import { getDefaultAdminEmails, requireAdmin } from "@/lib/admin/auth";
 import { createClient } from "@/lib/supabase/server";
 
 // POST /api/admin/users/bulk-block
@@ -21,7 +21,8 @@ type Scope = "all-except-admins" | "chat-only" | "inactive" | "all";
 type Action = "block" | "unblock";
 
 export async function POST(req: Request) {
-  if (!checkAdminAuth(req)) {
+  const auth = await requireAdmin();
+  if (!auth.ok) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
@@ -44,7 +45,17 @@ export async function POST(req: Request) {
     }
 
     const supabase = await createClient();
-    const adminEmails = getAdminEmails();
+    // Pega lista de emails admin: defaults + quem está com is_admin=true no banco
+    const { data: dbAdmins } = await supabase
+      .from("users")
+      .select("email")
+      .eq("is_admin", true);
+    const adminEmails = Array.from(
+      new Set([
+        ...getDefaultAdminEmails(),
+        ...((dbAdmins || []).map((a: { email: string }) => a.email.toLowerCase())),
+      ])
+    );
 
     // Pra desbloqueio em massa, scope = 'all' (afeta todos os blocked) é o caso comum
     if (action === "unblock") {

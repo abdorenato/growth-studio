@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { checkAdminAuth, getAdminEmails } from "@/lib/admin/auth";
+import { getDefaultAdminEmails, requireAdmin } from "@/lib/admin/auth";
 import { createClient } from "@/lib/supabase/server";
 
 // POST /api/admin/users/[id]/block
@@ -14,7 +14,8 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!checkAdminAuth(req)) {
+  const auth = await requireAdmin();
+  if (!auth.ok) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
@@ -43,7 +44,7 @@ export async function POST(
     }
 
     // Proteção: não bloqueia admins via UI
-    if (action === "block" && getAdminEmails().includes(target.email.toLowerCase())) {
+    if (action === "block" && getDefaultAdminEmails().includes(target.email.toLowerCase())) {
       return NextResponse.json(
         {
           error:

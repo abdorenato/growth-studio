@@ -50,6 +50,10 @@ type Stats = {
     instagram: string | null;
     origem: string | null;
     blocked_at: string | null;
+    access_status: "pending" | "approved" | "blocked" | null;
+    is_admin: boolean | null;
+    avatar_url: string | null;
+    last_login_at: string | null;
     created_at: string;
     modulos_completos: number;
   }>;
@@ -82,7 +86,7 @@ export default function AdminPage() {
     setError(null);
     try {
       const resp = await fetch(`/api/admin/stats?period=${period}`, {
-        headers: { "x-admin-email": user.email },
+        // auth via cookie Supabase
       });
       if (resp.status === 401) {
         setError("Você não tem acesso a esse painel.");
@@ -115,7 +119,7 @@ export default function AdminPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-email": user.email,
+          // auth via cookie Supabase (sem header)
         },
         body: JSON.stringify({ action }),
       });
@@ -125,6 +129,61 @@ export default function AdminPage() {
       }
       toast.success(currentlyBlocked ? "Desbloqueado" : "Bloqueado");
       fetchStats(); // recarrega
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    }
+  };
+
+  // ─── MUDAR ACCESS STATUS (approve / block / pending) ──────────────
+  const setAccessStatus = async (
+    userId: string,
+    email: string,
+    status: "approved" | "blocked" | "pending"
+  ) => {
+    if (!user) return;
+    const verb =
+      status === "approved" ? "Aprovar" : status === "blocked" ? "Bloquear" : "Voltar para pending";
+    if (!confirm(`${verb} ${email}?`)) return;
+
+    try {
+      const resp = await fetch(`/api/admin/users/${userId}/access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_status: status }),
+      });
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.error || "falha");
+      }
+      toast.success(`${email} → ${status}`);
+      fetchStats();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    }
+  };
+
+  // ─── PROMOVER / REBAIXAR ADMIN ─────────────────────────────────────
+  const toggleAdmin = async (
+    userId: string,
+    email: string,
+    currentlyAdmin: boolean
+  ) => {
+    if (!user) return;
+    const verb = currentlyAdmin ? "Remover admin de" : "Promover a admin";
+    if (!confirm(`${verb} ${email}?`)) return;
+
+    try {
+      const resp = await fetch(`/api/admin/users/${userId}/access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_admin: !currentlyAdmin }),
+      });
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.error || "falha");
+      }
+      toast.success(currentlyAdmin ? "Admin removido" : "Promovido a admin");
+      fetchStats();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro");
     }
@@ -152,7 +211,7 @@ export default function AdminPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-email": user.email,
+          // auth via cookie Supabase (sem header)
         },
         body: JSON.stringify({ scope: apiScope, action: apiAction, mode: "preview" }),
       });
@@ -178,7 +237,7 @@ export default function AdminPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-email": user.email,
+          // auth via cookie Supabase (sem header)
         },
         body: JSON.stringify({ scope: apiScope, action: apiAction, mode: "apply" }),
       });
@@ -254,6 +313,9 @@ export default function AdminPage() {
             <StatCard label="Sem origem (antigos)" value={stats.overview.origem.sem_origem} muted />
           </div>
         </section>
+
+        {/* Pending aguardando aprovacao */}
+        <PendingAlert leads={stats.leads_recentes} onApprove={setAccessStatus} />
 
         {/* Utilizações */}
         <section>
@@ -474,17 +536,29 @@ export default function AdminPage() {
                 </thead>
                 <tbody>
                   {stats.leads_recentes.map((u) => {
-                    const isBlocked = !!u.blocked_at;
+                    const status = u.access_status || "pending";
+                    const isAdmin = !!u.is_admin;
+                    const isPending = status === "pending";
+                    const isBlocked = status === "blocked";
                     return (
                       <tr
                         key={u.id}
                         className={
                           "border-t hover:bg-muted/30 " +
-                          (isBlocked ? "bg-red-50/50 dark:bg-red-950/10" : "")
+                          (isBlocked
+                            ? "bg-red-50/50 dark:bg-red-950/10"
+                            : isPending
+                            ? "bg-amber-50/50 dark:bg-amber-950/10"
+                            : "")
                         }
                       >
                         <td className="px-3 py-2 truncate max-w-[200px]">{u.email}</td>
-                        <td className="px-3 py-2 truncate max-w-[150px]">{u.name || "—"}</td>
+                        <td className="px-3 py-2 truncate max-w-[150px]">
+                          <div className="flex items-center gap-1">
+                            {u.name || "—"}
+                            {isAdmin && <AdminBadge />}
+                          </div>
+                        </td>
                         <td className="px-3 py-2 truncate max-w-[120px] text-muted-foreground">
                           {u.instagram ? `@${u.instagram}` : "—"}
                         </td>
@@ -492,13 +566,7 @@ export default function AdminPage() {
                           <OrigemBadge origem={u.origem} />
                         </td>
                         <td className="px-3 py-2">
-                          {isBlocked ? (
-                            <span className="text-xs bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 px-2 py-0.5 rounded">
-                              🔒 bloqueado
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
+                          <StatusBadge status={status} />
                         </td>
                         <td className="px-3 py-2 text-center">
                           <ModulosBadge n={u.modulos_completos} />
@@ -506,20 +574,49 @@ export default function AdminPage() {
                         <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
                           {formatDate(u.created_at)}
                         </td>
-                        <td className="px-3 py-2 text-center">
-                          <Button
-                            size="sm"
-                            variant={isBlocked ? "outline" : "ghost"}
-                            onClick={() => toggleBlock(u.id, u.email, isBlocked)}
-                            className={
-                              "text-xs h-7 px-2 " +
-                              (isBlocked
-                                ? "border-emerald-500/50 text-emerald-700 dark:text-emerald-400"
-                                : "text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30")
-                            }
-                          >
-                            {isBlocked ? "Desbloquear" : "Bloquear"}
-                          </Button>
+                        <td className="px-3 py-2">
+                          <div className="flex gap-1 flex-wrap justify-center">
+                            {/* Botões dependem do status atual */}
+                            {status !== "approved" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setAccessStatus(u.id, u.email, "approved")}
+                                className="text-xs h-7 px-2 border-emerald-500/50 text-emerald-700 dark:text-emerald-400"
+                              >
+                                Aprovar
+                              </Button>
+                            )}
+                            {status !== "blocked" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setAccessStatus(u.id, u.email, "blocked")}
+                                className="text-xs h-7 px-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                              >
+                                Bloquear
+                              </Button>
+                            )}
+                            {isAdmin ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => toggleAdmin(u.id, u.email, true)}
+                                className="text-xs h-7 px-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                              >
+                                ⚙️ Remove admin
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => toggleAdmin(u.id, u.email, false)}
+                                className="text-xs h-7 px-2 text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/30"
+                              >
+                                ⚙️ Promover admin
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -785,6 +882,114 @@ function SimpleTable({
         ))}
       </tbody>
     </table>
+  );
+}
+
+function PendingAlert({
+  leads,
+  onApprove,
+}: {
+  leads: Stats["leads_recentes"];
+  onApprove: (
+    userId: string,
+    email: string,
+    status: "approved" | "blocked" | "pending"
+  ) => void;
+}) {
+  const pending = leads.filter((l) => (l.access_status || "pending") === "pending");
+  if (pending.length === 0) return null;
+
+  return (
+    <Card className="border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/10">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <h3 className="font-semibold text-amber-900 dark:text-amber-300">
+              ⏳ {pending.length} usuário(s) aguardando aprovação
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Aprove ou bloqueie pra liberar o acesso à plataforma.
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 space-y-2">
+          {pending.slice(0, 5).map((u) => (
+            <div
+              key={u.id}
+              className="flex items-center justify-between gap-3 bg-background rounded p-2 text-sm"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="font-medium truncate">{u.name || u.email}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {u.email}
+                  {u.instagram ? ` · @${u.instagram}` : ""}
+                </p>
+              </div>
+              <div className="flex gap-1 flex-shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onApprove(u.id, u.email, "approved")}
+                  className="text-xs h-7 px-2 border-emerald-500/50 text-emerald-700 dark:text-emerald-400"
+                >
+                  Aprovar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onApprove(u.id, u.email, "blocked")}
+                  className="text-xs h-7 px-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                >
+                  Bloquear
+                </Button>
+              </div>
+            </div>
+          ))}
+          {pending.length > 5 && (
+            <p className="text-xs text-muted-foreground text-center pt-1">
+              + {pending.length - 5} pendente(s) na lista abaixo
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatusBadge({
+  status,
+}: {
+  status: "pending" | "approved" | "blocked";
+}) {
+  if (status === "approved") {
+    return (
+      <span className="text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded">
+        ✓ aprovado
+      </span>
+    );
+  }
+  if (status === "blocked") {
+    return (
+      <span className="text-xs bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 px-2 py-0.5 rounded">
+        🚫 bloqueado
+      </span>
+    );
+  }
+  return (
+    <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-2 py-0.5 rounded">
+      ⏳ pending
+    </span>
+  );
+}
+
+function AdminBadge() {
+  return (
+    <span
+      className="text-[10px] bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300 px-1.5 py-0.5 rounded font-medium"
+      title="Admin do sistema"
+    >
+      ⚙️ ADMIN
+    </span>
   );
 }
 
