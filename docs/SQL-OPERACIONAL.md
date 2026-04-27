@@ -174,6 +174,90 @@ where email = 'EMAIL_AQUI';
 
 ---
 
+## 🚧 3. Bloquear vários usuários de uma vez
+
+### 3A. Bloquear TODOS
+
+```sql
+update users
+set blocked_at = now()
+where blocked_at is null;
+```
+
+> ⚠️ **Atenção:** isso te bloqueia também (inclusive admins). Use a versão 3B se quiser preservar acesso ao `/admin`.
+
+> O `blocked_at is null` no WHERE preserva o timestamp original de quem já estava bloqueado (não "re-bloqueia").
+
+### 3B. Bloquear todos EXCETO admins (mantém você acessando /admin)
+
+Ajuste a lista de emails que devem continuar liberados:
+
+```sql
+update users
+set blocked_at = now()
+where blocked_at is null
+  and email not in (
+    'renatocamarotta@gmail.com'
+    -- adicione outros admins aqui:
+    -- , 'outro@admin.com'
+  );
+```
+
+### 3C. Bloquear só leads vindos do chat (preservar quem cadastrou via plataforma)
+
+```sql
+update users
+set blocked_at = now()
+where blocked_at is null
+  and origem = 'chat';
+```
+
+### 3D. Bloquear leads inativos (entraram, nunca usaram)
+
+Bloqueia quem entrou há mais de 7 dias e não tem nenhum módulo gerado:
+
+```sql
+update users
+set blocked_at = now()
+where blocked_at is null
+  and created_at < now() - interval '7 days'
+  and id not in (select user_id from vozes where user_id is not null)
+  and id not in (select user_id from icps where user_id is not null);
+```
+
+### 3E. Desbloquear TODOS
+
+```sql
+update users set blocked_at = null;
+```
+
+### 3F. Desbloquear seletivamente
+
+```sql
+update users
+set blocked_at = null
+where email in (
+  'a@x.com',
+  'b@y.com'
+);
+```
+
+---
+
+### Diferença entre `REGISTRATION_CLOSED` e bloqueio em massa
+
+| | `REGISTRATION_CLOSED=true` (env var) | `update users set blocked_at = now()` |
+|---|---|---|
+| **Bloqueia** | Cadastros NOVOS | Usuários EXISTENTES |
+| **Onde** | Vercel env var + redeploy | SQL no Supabase |
+| **Quem entra** | Quem já tem conta passa | Ninguém passa (até desbloquear) |
+| **Reverter** | Remove env var + redeploy | UPDATE …blocked_at = null |
+| **Use quando** | Quer pausar inscrições | Quer pausar PLATAFORMA |
+
+**Combinar os 2:** `REGISTRATION_CLOSED=true` + `update users set blocked_at = now()` → sistema 100% fechado. Pra liberar alguém: `update users set blocked_at = null where email = 'X'` (não precisa remover a env var).
+
+---
+
 ## 🚨 3. Cenários comuns
 
 ### Aluno sumiu — quero ver o que ele fez antes de ir embora
