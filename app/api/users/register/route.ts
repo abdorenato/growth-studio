@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import {
+  isRegistrationClosed,
+  REGISTRATION_CLOSED_MSG,
+} from "@/lib/admin/registration";
 import { getFullProgress, registerLead } from "@/lib/db/users";
 
 const BodySchema = z.object({
@@ -13,6 +17,17 @@ const BodySchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    // Bloqueia se cadastros estao fechados (env var REGISTRATION_CLOSED=true)
+    if (isRegistrationClosed()) {
+      return NextResponse.json(
+        {
+          error: REGISTRATION_CLOSED_MSG,
+          code: "REGISTRATION_CLOSED",
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const parsed = BodySchema.parse(body);
 

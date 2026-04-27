@@ -158,6 +158,16 @@ export default function ChatPage() {
           instagram: insta || undefined,
         }),
       });
+      if (resp.status === 403) {
+        const errData = await resp.json().catch(() => ({}));
+        if (errData?.code === "REGISTRATION_CLOSED") {
+          toast.error(
+            errData.error ||
+              "Cadastros fechados. Use o email já cadastrado pra continuar."
+          );
+          return;
+        }
+      }
       if (!resp.ok) throw new Error();
       const data = await resp.json();
       setSession(data.session);

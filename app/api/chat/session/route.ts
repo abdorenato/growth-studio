@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
+import {
+  isRegistrationClosed,
+  REGISTRATION_CLOSED_MSG,
+} from "@/lib/admin/registration";
 import { getOrCreateSession, getRecentMessages } from "@/lib/chat/memory";
+import { createClient } from "@/lib/supabase/server";
 
 // POST /api/chat/session
 // Body: { email, displayName?, instagram? }
@@ -17,7 +22,30 @@ export async function POST(req: Request) {
       );
     }
 
-    const session = await getOrCreateSession("web", email.toLowerCase().trim(), {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Se cadastros estao fechados, bloqueia emails NOVOS (que nao existem na
+    // tabela users). Usuarios existentes continuam podendo conversar.
+    if (isRegistrationClosed()) {
+      const supabase = await createClient();
+      const { data: existing } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (!existing) {
+        return NextResponse.json(
+          {
+            error: REGISTRATION_CLOSED_MSG,
+            code: "REGISTRATION_CLOSED",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    const session = await getOrCreateSession("web", normalizedEmail, {
       displayName: displayName?.trim() || undefined,
       instagram: instagram?.trim() || undefined,
     });

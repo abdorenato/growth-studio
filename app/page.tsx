@@ -26,11 +26,22 @@ export default function HomePage() {
   const [atividade, setAtividade] = useState("");
   const [atividadeDescricao, setAtividadeDescricao] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registrationClosed, setRegistrationClosed] = useState(false);
 
   useEffect(() => {
     // Só redireciona depois da hidratação
     if (hasHydrated && user) router.replace("/dashboard");
   }, [user, hasHydrated, router]);
+
+  // Carrega config publica do sistema (estado de cadastros)
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((d) => setRegistrationClosed(Boolean(d.registrationClosed)))
+      .catch(() => {
+        // Falha silenciosa — assume aberto
+      });
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,8 +58,14 @@ export default function HomePage() {
       });
 
       if (response.status === 404) {
-        toast.info("Email não encontrado. Vamos fazer seu primeiro cadastro.");
-        setMode("register");
+        if (registrationClosed) {
+          toast.error(
+            "Email não encontrado e cadastros estão fechados no momento."
+          );
+        } else {
+          toast.info("Email não encontrado. Vamos fazer seu primeiro cadastro.");
+          setMode("register");
+        }
         return;
       }
       if (!response.ok) throw new Error();
@@ -95,6 +112,14 @@ export default function HomePage() {
         }),
       });
 
+      if (response.status === 403) {
+        const data = await response.json().catch(() => ({}));
+        if (data?.code === "REGISTRATION_CLOSED") {
+          setRegistrationClosed(true);
+          toast.error(data.error || "Cadastros fechados.");
+          return;
+        }
+      }
       if (!response.ok) throw new Error("Falha ao registrar");
       const data = await response.json();
 
@@ -170,6 +195,30 @@ export default function HomePage() {
                     Faça seu cadastro
                   </button>
                 </p>
+              </>
+            ) : registrationClosed ? (
+              /* ─── CADASTROS FECHADOS ─── */
+              <>
+                <div className="text-center py-4">
+                  <div className="text-4xl mb-3">🔒</div>
+                  <h2 className="text-xl font-semibold mb-2">
+                    Cadastros temporariamente fechados
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Estamos com inscrições pausadas no momento. Se você já tem
+                    conta, faça login com seu email.
+                  </p>
+                </div>
+                <Separator />
+                <Button
+                  type="button"
+                  className="w-full"
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setMode("login")}
+                >
+                  ← Voltar pro login
+                </Button>
               </>
             ) : (
               /* ─── MODO CADASTRO (primeira vez) ─── */
