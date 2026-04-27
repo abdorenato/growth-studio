@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
@@ -10,6 +10,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  // useSearchParams precisa de Suspense boundary pra build estatico
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-dvh flex items-center justify-center text-muted-foreground">
+          Carregando…
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/dashboard";
   const [loading, setLoading] = useState(false);
