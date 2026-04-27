@@ -265,7 +265,7 @@ export async function GET(req: Request) {
   const { data: recentLeads } = await supabase
     .from("users")
     .select(
-      "id, email, name, instagram, origem, blocked_at, access_status, is_admin, avatar_url, last_login_at, created_at"
+      "id, email, name, instagram, phone, origem, blocked_at, access_status, is_admin, avatar_url, last_login_at, created_at"
     )
     .order("created_at", { ascending: false })
     .limit(50);
@@ -277,6 +277,7 @@ export async function GET(req: Request) {
       email: string;
       name: string;
       instagram: string | null;
+      phone: string | null;
       origem: string | null;
       blocked_at: string | null;
       access_status: "pending" | "approved" | "blocked" | null;

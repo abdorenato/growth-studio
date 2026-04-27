@@ -16,6 +16,7 @@ const PUBLIC_API_PREFIXES = [
   "/api/chat", // chat publico
   "/api/health",
   "/api/config",
+  "/api/waitlist", // captura de leads (publico)
 ];
 
 export async function middleware(request: NextRequest) {

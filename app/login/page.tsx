@@ -3,11 +3,17 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { Instagram } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 import { createClient } from "@/lib/supabase/client";
+
+const INSTAGRAM_HANDLE = "renatoabdo";
 
 export default function LoginPage() {
   // useSearchParams precisa de Suspense boundary pra build estatico
@@ -37,12 +43,10 @@ function LoginContent() {
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
-          // Pede consent toda vez = sempre traz email atualizado + permite trocar conta
           queryParams: { access_type: "offline", prompt: "consent" },
         },
       });
       if (error) throw error;
-      // Redireciona pro Google — o user vai sair daqui automaticamente
     } catch (err) {
       console.error(err);
       toast.error("Erro ao iniciar login com Google. Tente de novo.");
@@ -51,18 +55,22 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-dvh flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
+    <div className="min-h-dvh flex flex-col items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="text-6xl mb-2">🚀</div>
           <h1 className="text-4xl font-bold">Growth Studio</h1>
           <p className="text-muted-foreground mt-2">
-            Entre pra construir sua estratégia de marca com IA.
+            Construa sua estratégia de marca com IA.
           </p>
         </div>
 
+        {/* Login Google (acesso por convite) */}
         <Card>
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-6 space-y-3">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground text-center">
+              Já tem acesso?
+            </p>
             <Button
               onClick={signInWithGoogle}
               disabled={loading}
@@ -79,15 +87,177 @@ function LoginContent() {
                 </>
               )}
             </Button>
-
-            <p className="text-xs text-center text-muted-foreground pt-2">
-              Acesso por convite. Após login, sua conta passa por aprovação
-              manual antes de liberar o uso.
-            </p>
           </CardContent>
         </Card>
+
+        {/* Lista de espera */}
+        <div className="my-4 flex items-center gap-3">
+          <Separator className="flex-1" />
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">
+            ou
+          </span>
+          <Separator className="flex-1" />
+        </div>
+
+        <WaitlistCard />
+
+        {/* Footer Instagram */}
+        <a
+          href={`https://instagram.com/${INSTAGRAM_HANDLE}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Instagram className="w-4 h-4" />
+          <span>
+            Mais informações no Instagram{" "}
+            <span className="font-medium text-foreground">@{INSTAGRAM_HANDLE}</span>
+          </span>
+        </a>
       </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Card da lista de espera
+// ─────────────────────────────────────────────────────────────────────
+function WaitlistCard() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim()) return toast.error("Preciso do seu nome.");
+    if (!email.includes("@")) return toast.error("Email inválido.");
+    if (phone.replace(/\D/g, "").length < 10) {
+      return toast.error("Celular inválido. Inclua DDD.");
+    }
+
+    setSubmitting(true);
+    try {
+      const resp = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          instagram: instagram.trim().replace(/^@/, ""),
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || "Falha");
+
+      setSubmitted(true);
+      if (data.alreadyExisted) {
+        toast.info("Você já estava na lista! Atualizamos seus dados.");
+      } else {
+        toast.success("Você está na lista! Te avisamos em breve.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/10">
+        <CardContent className="p-6 text-center space-y-3">
+          <div className="text-5xl">✅</div>
+          <h3 className="font-semibold text-lg">Você está na lista!</h3>
+          <p className="text-sm text-muted-foreground">
+            Vou te avisar por email e WhatsApp assim que liberar seu acesso.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-4">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground text-center mb-1">
+            Ainda não tem acesso?
+          </p>
+          <h3 className="font-semibold text-center">Entre na lista de espera</h3>
+          <p className="text-xs text-muted-foreground text-center mt-1">
+            Estamos liberando aos poucos. Te aviso quando chegar sua vez.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-name">Seu nome</Label>
+            <Input
+              id="wl-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Renato Abdo"
+              disabled={submitting}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-email">Email</Label>
+            <Input
+              id="wl-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="voce@email.com"
+              disabled={submitting}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-phone">Celular (com DDD)</Label>
+            <Input
+              id="wl-phone"
+              type="tel"
+              inputMode="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(11) 91234-5678"
+              disabled={submitting}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-ig" className="text-muted-foreground">
+              Instagram (opcional)
+            </Label>
+            <Input
+              id="wl-ig"
+              value={instagram}
+              onChange={(e) => setInstagram(e.target.value)}
+              placeholder="@seuinsta"
+              disabled={submitting}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={submitting}
+            size="lg"
+            className="w-full"
+          >
+            {submitting ? "Enviando..." : "Entrar na lista de espera"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 

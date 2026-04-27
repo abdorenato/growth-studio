@@ -5,6 +5,7 @@ export type User = {
   email: string;
   name: string;
   instagram?: string;
+  phone?: string;
   atividade?: string;
   atividade_descricao?: string;
   oferta_em_foco_id?: string | null;

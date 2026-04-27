@@ -48,6 +48,7 @@ type Stats = {
     email: string;
     name: string;
     instagram: string | null;
+    phone: string | null;
     origem: string | null;
     blocked_at: string | null;
     access_status: "pending" | "approved" | "blocked" | null;
@@ -526,7 +527,7 @@ export default function AdminPage() {
                   <tr className="text-left text-xs uppercase">
                     <th className="px-3 py-2">Email</th>
                     <th className="px-3 py-2">Nome</th>
-                    <th className="px-3 py-2">@</th>
+                    <th className="px-3 py-2">Contato</th>
                     <th className="px-3 py-2">Origem</th>
                     <th className="px-3 py-2">Status</th>
                     <th className="px-3 py-2 text-center">Módulos</th>
@@ -559,8 +560,8 @@ export default function AdminPage() {
                             {isAdmin && <AdminBadge />}
                           </div>
                         </td>
-                        <td className="px-3 py-2 truncate max-w-[120px] text-muted-foreground">
-                          {u.instagram ? `@${u.instagram}` : "—"}
+                        <td className="px-3 py-2 max-w-[180px] text-xs">
+                          <ContactCell phone={u.phone} instagram={u.instagram} />
                         </td>
                         <td className="px-3 py-2">
                           <OrigemBadge origem={u.origem} />
@@ -993,6 +994,54 @@ function AdminBadge() {
   );
 }
 
+function ContactCell({
+  phone,
+  instagram,
+}: {
+  phone: string | null;
+  instagram: string | null;
+}) {
+  if (!phone && !instagram) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  // formato BR: 11912345678 -> (11) 91234-5678
+  const formatPhone = (p: string) => {
+    const digits = p.replace(/\D/g, "");
+    if (digits.length === 11)
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    if (digits.length === 10)
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return p;
+  };
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      {phone && (
+        <a
+          href={`https://wa.me/55${phone.replace(/\D/g, "")}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-emerald-600 dark:text-emerald-400 hover:underline truncate"
+          title="Abrir WhatsApp"
+        >
+          📱 {formatPhone(phone)}
+        </a>
+      )}
+      {instagram && (
+        <a
+          href={`https://instagram.com/${instagram.replace(/^@/, "")}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-violet-600 dark:text-violet-400 hover:underline truncate"
+        >
+          @{instagram.replace(/^@/, "")}
+        </a>
+      )}
+    </div>
+  );
+}
+
 function OrigemBadge({ origem }: { origem: string | null }) {
   if (origem === "chat")
     return (
@@ -1004,6 +1053,12 @@ function OrigemBadge({ origem }: { origem: string | null }) {
     return (
       <span className="text-xs bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300 px-2 py-0.5 rounded">
         plataforma
+      </span>
+    );
+  if (origem === "waitlist")
+    return (
+      <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-2 py-0.5 rounded">
+        ⏳ waitlist
       </span>
     );
   return <span className="text-xs text-muted-foreground">—</span>;
