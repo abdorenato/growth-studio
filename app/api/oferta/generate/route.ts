@@ -23,7 +23,10 @@ export async function POST(req: Request) {
     }
 
     const { system, user } = ofertaFullPrompt(ctx, product, differentiator, priceRange);
-    const text = await callClaude(system, user, 3000);
+    const text = await callClaude(system, user, 3000, {
+      endpoint: "/api/oferta/generate",
+      userId,
+    });
     const result = parseJSON(text);
 
     return NextResponse.json(result);

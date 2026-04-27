@@ -22,7 +22,10 @@ export async function POST(req: Request) {
       demographics || {},
       creator
     );
-    const text = await callClaude(system, user, 2000);
+    const text = await callClaude(system, user, 2000, {
+      endpoint: "/api/icp/suggest",
+      userId,
+    });
     const result = parseJSON(text);
     return NextResponse.json(result);
   } catch (err) {

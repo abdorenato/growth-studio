@@ -78,10 +78,11 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     const mapaVoz = voz?.mapa_voz || null;
+    const meta = { endpoint: `/api/territorio/suggest (${body.kind})`, userId };
 
     if (body.kind === "dominio") {
       const { system, user } = suggestDominiosPrompt(creator, icp, mapaVoz, pos);
-      const text = await callClaude(system, user, 1500);
+      const text = await callClaude(system, user, 1500, meta);
       return NextResponse.json(parseJSON(text));
     }
 
@@ -94,7 +95,7 @@ export async function POST(req: Request) {
         body.dominio,
         body.lente
       );
-      const text = await callClaude(system, user, 1500);
+      const text = await callClaude(system, user, 1500, meta);
       return NextResponse.json(parseJSON(text));
     }
 
@@ -108,7 +109,7 @@ export async function POST(req: Request) {
         body.ancora,
         body.lente
       );
-      const text = await callClaude(system, user, 1500);
+      const text = await callClaude(system, user, 1500, meta);
       return NextResponse.json(parseJSON(text));
     }
 
@@ -123,7 +124,7 @@ export async function POST(req: Request) {
         body.lente,
         body.tese
       );
-      const text = await callClaude(system, user, 1500);
+      const text = await callClaude(system, user, 1500, meta);
       return NextResponse.json(parseJSON(text));
     }
 
@@ -137,7 +138,7 @@ export async function POST(req: Request) {
         body.ancora,
         body.tese
       );
-      const text = await callClaude(system, user, 1500);
+      const text = await callClaude(system, user, 1500, meta);
       return NextResponse.json(parseJSON(text));
     }
 

@@ -70,7 +70,10 @@ export async function POST(req: Request) {
       creator
     );
 
-    const text = await callClaude(system, user, 3000);
+    const text = await callClaude(system, user, 3000, {
+      endpoint: "/api/ideias/generate",
+      userId,
+    });
     const result = parseJSON(text);
 
     return NextResponse.json(result);

@@ -6,8 +6,9 @@ import { VOZ_SYSTEM_PROMPT } from "@/lib/voz/prompt";
 
 export async function POST(req: Request) {
   try {
-    const { answers } = (await req.json()) as {
+    const { answers, userId } = (await req.json()) as {
       answers: Record<string, string>;
+      userId?: string;
     };
 
     if (!answers) {
@@ -24,7 +25,10 @@ export async function POST(req: Request) {
 
     const userMessage = `Analise as respostas abaixo e identifique o arquétipo primário e secundário:\n\n${formatted}`;
 
-    const text = await callClaude(VOZ_SYSTEM_PROMPT, userMessage, 2000);
+    const text = await callClaude(VOZ_SYSTEM_PROMPT, userMessage, 2000, {
+      endpoint: "/api/voz/generate",
+      userId,
+    });
     const result = parseJSON(text);
 
     return NextResponse.json(result);

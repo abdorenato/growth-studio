@@ -52,9 +52,11 @@ export async function POST(req: Request) {
       .eq("user_id", userId)
       .maybeSingle();
 
+    const meta = { endpoint: `/api/posicionamento/suggest (${body.kind})`, userId };
+
     if (body.kind === "resultado") {
       const { system, user } = suggestResultadoPrompt(icp, creator);
-      const text = await callClaude(system, user, 1500);
+      const text = await callClaude(system, user, 1500, meta);
       return NextResponse.json(parseJSON(text));
     }
 
@@ -64,7 +66,7 @@ export async function POST(req: Request) {
         voz?.mapa_voz || null,
         body.descricao
       );
-      const text = await callClaude(system, user, 1000);
+      const text = await callClaude(system, user, 1000, meta);
       return NextResponse.json(parseJSON(text));
     }
 
@@ -76,7 +78,7 @@ export async function POST(req: Request) {
         body.categoria,
         creator
       );
-      const text = await callClaude(system, user, 1500);
+      const text = await callClaude(system, user, 1500, meta);
       return NextResponse.json(parseJSON(text));
     }
 
@@ -89,7 +91,7 @@ export async function POST(req: Request) {
         body.diferencial,
         creator
       );
-      const text = await callClaude(system, user, 1500);
+      const text = await callClaude(system, user, 1500, meta);
       return NextResponse.json(parseJSON(text));
     }
 

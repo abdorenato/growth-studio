@@ -79,7 +79,10 @@ export async function POST(req: Request) {
         );
     }
 
-    const text = await callClaude(prompt.system, prompt.user, 3000);
+    const text = await callClaude(prompt.system, prompt.user, 3000, {
+      endpoint: `/api/monoflow/generate (${platform})`,
+      userId,
+    });
     const result = parseJSON(text) as Record<string, unknown>;
 
     // Safeguard: se a IA não respeitou o limite, corta no servidor

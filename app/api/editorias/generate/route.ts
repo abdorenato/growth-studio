@@ -55,6 +55,8 @@ export async function POST(req: Request) {
     const pos = posResp.data || null;
     const ter = terResp.data || null;
 
+    const meta = { endpoint: `/api/editorias/generate (${body.kind})`, userId };
+
     if (body.kind === "all") {
       const { system, user } = generateEditoriasPrompt(
         creator,
@@ -63,7 +65,7 @@ export async function POST(req: Request) {
         pos,
         ter
       );
-      const text = await callClaude(system, user, 2500);
+      const text = await callClaude(system, user, 2500, meta);
       return NextResponse.json(parseJSON(text));
     }
 
@@ -77,7 +79,7 @@ export async function POST(req: Request) {
         body.tipo_objetivo,
         body.nome_anterior
       );
-      const text = await callClaude(system, user, 1500);
+      const text = await callClaude(system, user, 1500, meta);
       return NextResponse.json(parseJSON(text));
     }
 

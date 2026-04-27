@@ -44,7 +44,10 @@ export async function POST(req: Request) {
     const { system, user } = destaquesPrompt(ctx, editorias);
     // 8-12 destaques com 4 campos texto cada pode passar de 3000 facil.
     // 6000 da folga sem custo perceptivel.
-    const text = await callClaude(system, user, 6000);
+    const text = await callClaude(system, user, 6000, {
+      endpoint: "/api/destaques/generate",
+      userId,
+    });
 
     let result;
     try {

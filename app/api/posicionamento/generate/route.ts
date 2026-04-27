@@ -31,7 +31,10 @@ export async function POST(req: Request) {
       whatYouDo,
       forWhom
     );
-    const text = await callClaude(system, user, 1500);
+    const text = await callClaude(system, user, 1500, {
+      endpoint: "/api/posicionamento/generate",
+      userId,
+    });
     const result = parseJSON(text);
 
     return NextResponse.json(result);

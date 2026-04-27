@@ -33,12 +33,18 @@ export async function POST(req: Request) {
 
     if (mode === "final") {
       const { system, user } = pitchFinalPrompt(ctx, oferta as Offer, answers);
-      const text = await callClaude(system, user, 2000);
+      const text = await callClaude(system, user, 2000, {
+        endpoint: "/api/pitch/generate (final)",
+        userId,
+      });
       return NextResponse.json({ pitch: text });
     }
 
     const { system, user } = pitchPrompt(ctx, oferta as Offer);
-    const text = await callClaude(system, user, 3000);
+    const text = await callClaude(system, user, 3000, {
+      endpoint: "/api/pitch/generate",
+      userId,
+    });
     const result = parseJSON(text);
     return NextResponse.json(result);
   } catch (err) {

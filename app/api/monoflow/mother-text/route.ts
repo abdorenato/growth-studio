@@ -42,7 +42,10 @@ export async function POST(req: Request) {
       angle || "",
       targetStage || null
     );
-    const text = await callClaude(system, user, 1500);
+    const text = await callClaude(system, user, 1500, {
+      endpoint: "/api/monoflow/mother-text",
+      userId,
+    });
     return NextResponse.json({ motherText: text });
   } catch (err) {
     console.error("Mother text error:", err);

@@ -79,7 +79,10 @@ export async function POST(
 
     // Elevator é curto (~120 tokens). Carta longa (~2500 tokens).
     const maxTokens = kind === "elevator" ? 400 : 3500;
-    const text = await callClaude(system, user, maxTokens);
+    const text = await callClaude(system, user, maxTokens, {
+      endpoint: `/api/pitch/derive (${kind})`,
+      userId: pitch.user_id,
+    });
 
     return NextResponse.json({ text });
   } catch (err) {

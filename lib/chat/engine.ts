@@ -1,4 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
+
+import { logAiCall } from "@/lib/claude";
 import { IABDO_SYSTEM_PROMPT } from "./knowledge";
 import { appendMessage, getRecentMessages, getSessionById } from "./memory";
 import { loadAlunoContextForChat } from "./strategy-loader";
@@ -116,6 +118,17 @@ ${IABDO_SYSTEM_PROMPT}`
     system: systemPrompt,
     messages,
   });
+
+  // Log fire-and-forget pra metricas em /admin
+  if (response.usage) {
+    logAiCall({
+      endpoint: "/api/chat/web",
+      userId: session.user_id || null,
+      model: MODEL,
+      tokensIn: response.usage.input_tokens,
+      tokensOut: response.usage.output_tokens,
+    }).catch((err) => console.error("[ai_calls] chat log falhou:", err));
+  }
 
   const block = response.content[0];
   const reply = block.type === "text" ? block.text.trim() : "";
