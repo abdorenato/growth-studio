@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Instagram } from "lucide-react";
+import { Instagram, CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +16,6 @@ import { createClient } from "@/lib/supabase/client";
 const INSTAGRAM_HANDLE = "renatoabdo";
 
 export default function LoginPage() {
-  // useSearchParams precisa de Suspense boundary pra build estatico
   return (
     <Suspense
       fallback={
@@ -31,6 +30,139 @@ export default function LoginPage() {
 }
 
 function LoginContent() {
+  return (
+    <div className="min-h-dvh bg-gradient-to-br from-background via-background to-muted/30">
+      <div className="max-w-6xl mx-auto px-4 py-8 lg:py-16 lg:px-8">
+        <div className="grid lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-16 items-center">
+          {/* COLUNA ESQUERDA — pitch / valor */}
+          <Hero />
+
+          {/* COLUNA DIREITA — ação */}
+          <div className="space-y-4 w-full max-w-md mx-auto lg:mx-0">
+            <GoogleLoginCard />
+
+            <div className="flex items-center gap-3">
+              <Separator className="flex-1" />
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                ou
+              </span>
+              <Separator className="flex-1" />
+            </div>
+
+            <WaitlistCard />
+
+            <a
+              href={`https://instagram.com/${INSTAGRAM_HANDLE}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Instagram className="w-4 h-4" />
+              <span>
+                Acompanhe o método em{" "}
+                <span className="font-medium text-foreground">@{INSTAGRAM_HANDLE}</span>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Hero — copy vendedor (esquerda no desktop, topo no mobile)
+// ─────────────────────────────────────────────────────────────────────
+function Hero() {
+  const entregaveis = [
+    {
+      emoji: "🎙️",
+      title: "Voz da marca",
+      desc: "Arquétipo + tom + palavras a usar e evitar",
+    },
+    {
+      emoji: "📍",
+      title: "Posicionamento",
+      desc: "Uma frase memorável que diz pra quem você é",
+    },
+    {
+      emoji: "🗺️",
+      title: "Território + tese",
+      desc: "Seu universo simbólico e a opinião que defende",
+    },
+    {
+      emoji: "📚",
+      title: "5 editorias estratégicas",
+      desc: "Pilares de conteúdo que sustentam meses de produção",
+    },
+    {
+      emoji: "💡",
+      title: "Ideias prontas pra postar",
+      desc: "Com hook, ângulo e estágio de consciência calibrado",
+    },
+    {
+      emoji: "🔄",
+      title: "1 ideia → 6 formatos",
+      desc: "Reels · Post · Carrossel · Stories · LinkedIn · TikTok",
+    },
+    {
+      emoji: "💰",
+      title: "Oferta + Pitch + Carta de vendas",
+      desc: "Estruturado pra converter, sem clichê de gurus",
+    },
+    {
+      emoji: "🪪",
+      title: "Bio + Destaques",
+      desc: "Pra Instagram, TikTok e LinkedIn",
+    },
+  ];
+
+  return (
+    <div>
+      <div className="inline-flex items-center gap-2 text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full mb-4">
+        🚀 Growth Studio
+      </div>
+
+      <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-[1.1] tracking-tight">
+        Sua marca pessoal estruturada{" "}
+        <span className="text-primary">numa tarde.</span>
+      </h1>
+
+      <p className="text-base lg:text-lg text-muted-foreground mt-4 leading-relaxed">
+        Não em 6 meses lendo livro de marketing. Você entra com sua atividade,
+        e sai com voz, posicionamento, conteúdo e oferta — guiado por IA, com
+        base em frameworks reais (Schwartz, Ries/Trout, Hormozi).
+      </p>
+
+      <div className="mt-8 grid sm:grid-cols-2 gap-3">
+        {entregaveis.map((e) => (
+          <div key={e.title} className="flex gap-3 items-start">
+            <div className="text-xl flex-shrink-0 mt-0.5">{e.emoji}</div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold leading-tight">{e.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                {e.desc}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 flex items-start gap-2 text-sm text-muted-foreground border-l-2 border-primary/40 pl-4">
+        <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+        <p>
+          Hoje em <strong className="text-foreground">acesso fechado</strong>{" "}
+          enquanto refinamos com os primeiros usuários. Quer entrar?
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Card de login Google
+// ─────────────────────────────────────────────────────────────────────
+function GoogleLoginCard() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/dashboard";
   const [loading, setLoading] = useState(false);
@@ -55,67 +187,29 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="text-6xl mb-2">🚀</div>
-          <h1 className="text-4xl font-bold">Growth Studio</h1>
-          <p className="text-muted-foreground mt-2">
-            Construa sua estratégia de marca com IA.
-          </p>
-        </div>
-
-        {/* Login Google (acesso por convite) */}
-        <Card>
-          <CardContent className="p-6 space-y-3">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground text-center">
-              Já tem acesso?
-            </p>
-            <Button
-              onClick={signInWithGoogle}
-              disabled={loading}
-              size="lg"
-              variant="outline"
-              className="w-full h-12 text-base font-medium"
-            >
-              {loading ? (
-                "Redirecionando..."
-              ) : (
-                <>
-                  <GoogleIcon />
-                  <span className="ml-3">Entrar com Google</span>
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Lista de espera */}
-        <div className="my-4 flex items-center gap-3">
-          <Separator className="flex-1" />
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">
-            ou
-          </span>
-          <Separator className="flex-1" />
-        </div>
-
-        <WaitlistCard />
-
-        {/* Footer Instagram */}
-        <a
-          href={`https://instagram.com/${INSTAGRAM_HANDLE}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+    <Card>
+      <CardContent className="p-5 space-y-3">
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">
+          Já tem acesso?
+        </p>
+        <Button
+          onClick={signInWithGoogle}
+          disabled={loading}
+          size="lg"
+          variant="outline"
+          className="w-full h-12 text-base font-medium"
         >
-          <Instagram className="w-4 h-4" />
-          <span>
-            Mais informações no Instagram{" "}
-            <span className="font-medium text-foreground">@{INSTAGRAM_HANDLE}</span>
-          </span>
-        </a>
-      </div>
-    </div>
+          {loading ? (
+            "Redirecionando..."
+          ) : (
+            <>
+              <GoogleIcon />
+              <span className="ml-3">Entrar com Google</span>
+            </>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -157,8 +251,6 @@ function WaitlistCard() {
       setSubmitted(true);
       if (data.alreadyExisted) {
         toast.info("Você já estava na lista! Atualizamos seus dados.");
-      } else {
-        toast.success("Você está na lista! Te avisamos em breve.");
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro");
@@ -169,12 +261,25 @@ function WaitlistCard() {
 
   if (submitted) {
     return (
-      <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/10">
-        <CardContent className="p-6 text-center space-y-3">
-          <div className="text-5xl">✅</div>
-          <h3 className="font-semibold text-lg">Você está na lista!</h3>
+      <Card className="border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/10">
+        <CardContent className="p-6 text-center space-y-2">
+          <div className="text-4xl">✅</div>
+          <h3 className="font-semibold text-base">Você está dentro</h3>
           <p className="text-sm text-muted-foreground">
-            Vou te avisar por email e WhatsApp assim que liberar seu acesso.
+            Vou te avisar por <strong>email</strong> e{" "}
+            <strong>WhatsApp</strong> assim que liberar seu acesso.
+          </p>
+          <p className="text-xs text-muted-foreground pt-2">
+            Enquanto isso, segue lá no{" "}
+            <a
+              href={`https://instagram.com/${INSTAGRAM_HANDLE}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline"
+            >
+              @{INSTAGRAM_HANDLE}
+            </a>{" "}
+            pra acompanhar.
           </p>
         </CardContent>
       </Card>
@@ -183,32 +288,38 @@ function WaitlistCard() {
 
   return (
     <Card>
-      <CardContent className="p-6 space-y-4">
+      <CardContent className="p-5 space-y-4">
         <div>
-          <p className="text-xs uppercase tracking-wider text-muted-foreground text-center mb-1">
-            Ainda não tem acesso?
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">
+            Sem convite ainda?
           </p>
-          <h3 className="font-semibold text-center">Entre na lista de espera</h3>
-          <p className="text-xs text-muted-foreground text-center mt-1">
-            Estamos liberando aos poucos. Te aviso quando chegar sua vez.
+          <h3 className="font-semibold text-base mt-0.5">
+            Garanta sua vaga na próxima leva
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Aviso por email + WhatsApp assim que liberar.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="wl-name">Seu nome</Label>
+            <Label htmlFor="wl-name" className="text-xs">
+              Nome
+            </Label>
             <Input
               id="wl-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Renato Abdo"
+              placeholder="Como devo te chamar"
               disabled={submitting}
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="wl-email">Email</Label>
+            <Label htmlFor="wl-email" className="text-xs">
+              Email
+            </Label>
             <Input
               id="wl-email"
               type="email"
@@ -221,7 +332,9 @@ function WaitlistCard() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="wl-phone">Celular (com DDD)</Label>
+            <Label htmlFor="wl-phone" className="text-xs">
+              Celular (com DDD)
+            </Label>
             <Input
               id="wl-phone"
               type="tel"
@@ -235,8 +348,8 @@ function WaitlistCard() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="wl-ig" className="text-muted-foreground">
-              Instagram (opcional)
+            <Label htmlFor="wl-ig" className="text-xs text-muted-foreground">
+              Instagram <span className="opacity-60">(opcional)</span>
             </Label>
             <Input
               id="wl-ig"
@@ -253,7 +366,7 @@ function WaitlistCard() {
             size="lg"
             className="w-full"
           >
-            {submitting ? "Enviando..." : "Entrar na lista de espera"}
+            {submitting ? "Enviando..." : "Quero garantir minha vaga →"}
           </Button>
         </form>
       </CardContent>
