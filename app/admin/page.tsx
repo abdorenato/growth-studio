@@ -49,6 +49,7 @@ type Stats = {
     name: string;
     instagram: string | null;
     origem: string | null;
+    blocked_at: string | null;
     created_at: string;
     modulos_completos: number;
   }>;
@@ -95,6 +96,100 @@ export default function AdminPage() {
       setError("Falha ao carregar estatísticas.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ─── BLOQUEAR / DESBLOQUEAR INDIVIDUAL ─────────────────────────────
+  const toggleBlock = async (
+    userId: string,
+    email: string,
+    currentlyBlocked: boolean
+  ) => {
+    if (!user) return;
+    const action = currentlyBlocked ? "unblock" : "block";
+    const verb = currentlyBlocked ? "Desbloquear" : "Bloquear";
+    if (!confirm(`${verb} ${email}?`)) return;
+
+    try {
+      const resp = await fetch(`/api/admin/users/${userId}/block`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-email": user.email,
+        },
+        body: JSON.stringify({ action }),
+      });
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.error || "falha");
+      }
+      toast.success(currentlyBlocked ? "Desbloqueado" : "Bloqueado");
+      fetchStats(); // recarrega
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    }
+  };
+
+  // ─── BLOQUEAR / DESBLOQUEAR EM MASSA ───────────────────────────────
+  type BulkScope = "all-except-admins" | "chat-only" | "inactive" | "all";
+  const [bulkLoading, setBulkLoading] = useState<BulkScope | "unblock" | null>(
+    null
+  );
+
+  const bulkAction = async (
+    scope: BulkScope | "unblock-all",
+    description: string
+  ) => {
+    if (!user) return;
+    const isUnblock = scope === "unblock-all";
+    const apiScope = isUnblock ? "all" : scope;
+    const apiAction = isUnblock ? "unblock" : "block";
+    setBulkLoading(isUnblock ? "unblock" : (scope as BulkScope));
+
+    try {
+      // 1. Preview pra mostrar quantos serao afetados
+      const previewResp = await fetch("/api/admin/users/bulk-block", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-email": user.email,
+        },
+        body: JSON.stringify({ scope: apiScope, action: apiAction, mode: "preview" }),
+      });
+      const preview = await previewResp.json();
+      if (!previewResp.ok) throw new Error(preview.error || "falha no preview");
+
+      const count = preview.count as number;
+      if (count === 0) {
+        toast.info("Nenhum usuário se aplica a esse cenário.");
+        return;
+      }
+
+      const sample = (preview.sample || []).join("\n• ");
+      const confirma = confirm(
+        `${description}\n\n` +
+          `Vai afetar ${count} usuário(s).\n\n` +
+          `Exemplos:\n• ${sample}\n\nConfirma?`
+      );
+      if (!confirma) return;
+
+      // 2. Apply
+      const applyResp = await fetch("/api/admin/users/bulk-block", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-email": user.email,
+        },
+        body: JSON.stringify({ scope: apiScope, action: apiAction, mode: "apply" }),
+      });
+      const result = await applyResp.json();
+      if (!applyResp.ok) throw new Error(result.error || "falha ao aplicar");
+      toast.success(`${result.affected} usuário(s) ${isUnblock ? "desbloqueado(s)" : "bloqueado(s)"}.`);
+      fetchStats();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    } finally {
+      setBulkLoading(null);
     }
   };
 
@@ -287,6 +382,76 @@ export default function AdminPage() {
           </Card>
         </section>
 
+        {/* Acoes em massa */}
+        <section>
+          <h2 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+            🚧 Ações em massa
+          </h2>
+          <Card>
+            <CardContent className="p-4">
+              <div className="grid sm:grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    bulkAction(
+                      "all-except-admins",
+                      "BLOQUEAR todos os usuários EXCETO admins"
+                    )
+                  }
+                  disabled={!!bulkLoading}
+                >
+                  {bulkLoading === "all-except-admins"
+                    ? "..."
+                    : "🔒 Bloquear todos (exceto admins)"}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    bulkAction("chat-only", "BLOQUEAR só leads vindos do chat")
+                  }
+                  disabled={!!bulkLoading}
+                >
+                  {bulkLoading === "chat-only" ? "..." : "🔒 Bloquear só chat-only"}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    bulkAction(
+                      "inactive",
+                      "BLOQUEAR leads inativos (>7 dias sem voz nem ICP)"
+                    )
+                  }
+                  disabled={!!bulkLoading}
+                >
+                  {bulkLoading === "inactive" ? "..." : "🔒 Bloquear inativos (>7d)"}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    bulkAction("unblock-all", "DESBLOQUEAR todos os usuários")
+                  }
+                  disabled={!!bulkLoading}
+                  className="border-emerald-500/50 text-emerald-700 dark:text-emerald-400"
+                >
+                  {bulkLoading === "unblock" ? "..." : "🔓 Desbloquear todos"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Toda ação mostra preview com quantos serão afetados antes de
+                executar. Admins (lista em <code>ADMIN_EMAILS</code> + default)
+                são preservados nos cenários "exceto admins".
+              </p>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* Lista de leads */}
         <section>
           <h2 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
@@ -301,29 +466,64 @@ export default function AdminPage() {
                     <th className="px-3 py-2">Nome</th>
                     <th className="px-3 py-2">@</th>
                     <th className="px-3 py-2">Origem</th>
+                    <th className="px-3 py-2">Status</th>
                     <th className="px-3 py-2 text-center">Módulos</th>
                     <th className="px-3 py-2">Entrou</th>
+                    <th className="px-3 py-2 text-center">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.leads_recentes.map((u) => (
-                    <tr key={u.id} className="border-t hover:bg-muted/30">
-                      <td className="px-3 py-2 truncate max-w-[200px]">{u.email}</td>
-                      <td className="px-3 py-2 truncate max-w-[150px]">{u.name || "—"}</td>
-                      <td className="px-3 py-2 truncate max-w-[120px] text-muted-foreground">
-                        {u.instagram ? `@${u.instagram}` : "—"}
-                      </td>
-                      <td className="px-3 py-2">
-                        <OrigemBadge origem={u.origem} />
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        <ModulosBadge n={u.modulos_completos} />
-                      </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDate(u.created_at)}
-                      </td>
-                    </tr>
-                  ))}
+                  {stats.leads_recentes.map((u) => {
+                    const isBlocked = !!u.blocked_at;
+                    return (
+                      <tr
+                        key={u.id}
+                        className={
+                          "border-t hover:bg-muted/30 " +
+                          (isBlocked ? "bg-red-50/50 dark:bg-red-950/10" : "")
+                        }
+                      >
+                        <td className="px-3 py-2 truncate max-w-[200px]">{u.email}</td>
+                        <td className="px-3 py-2 truncate max-w-[150px]">{u.name || "—"}</td>
+                        <td className="px-3 py-2 truncate max-w-[120px] text-muted-foreground">
+                          {u.instagram ? `@${u.instagram}` : "—"}
+                        </td>
+                        <td className="px-3 py-2">
+                          <OrigemBadge origem={u.origem} />
+                        </td>
+                        <td className="px-3 py-2">
+                          {isBlocked ? (
+                            <span className="text-xs bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 px-2 py-0.5 rounded">
+                              🔒 bloqueado
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <ModulosBadge n={u.modulos_completos} />
+                        </td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                          {formatDate(u.created_at)}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <Button
+                            size="sm"
+                            variant={isBlocked ? "outline" : "ghost"}
+                            onClick={() => toggleBlock(u.id, u.email, isBlocked)}
+                            className={
+                              "text-xs h-7 px-2 " +
+                              (isBlocked
+                                ? "border-emerald-500/50 text-emerald-700 dark:text-emerald-400"
+                                : "text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30")
+                            }
+                          >
+                            {isBlocked ? "Desbloquear" : "Bloquear"}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </CardContent>

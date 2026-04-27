@@ -263,7 +263,7 @@ export async function GET(req: Request) {
   // ─── LISTA DE LEADS RECENTES ─────────────────────────────────────────
   const { data: recentLeads } = await supabase
     .from("users")
-    .select("id, email, name, instagram, origem, created_at")
+    .select("id, email, name, instagram, origem, blocked_at, created_at")
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -275,6 +275,7 @@ export async function GET(req: Request) {
       name: string;
       instagram: string | null;
       origem: string | null;
+      blocked_at: string | null;
       created_at: string;
     }) => {
       const checks = await Promise.all(
