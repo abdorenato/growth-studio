@@ -29,7 +29,13 @@ import {
   type PosicionamentoSkill,
 } from "@/lib/posicionamento/skills";
 
-type ICPRow = { id: string; name: string; niche: string };
+type ICPRow = {
+  id: string;
+  name: string;
+  niche: string;
+  pain_points?: string[];
+  desires?: string[];
+};
 
 type DiferencialCat = "metodo" | "filosofia" | "origem";
 
@@ -66,6 +72,9 @@ type State = {
   frase_apoio: string;
   // Estilo (skill) usado na geracao da declaracao
   skill: PosicionamentoSkill;
+  // Foco estrategico (1 dor + 1 desejo escolhidos do ICP)
+  dor_foco: string;
+  desejo_foco: string;
 };
 
 const EMPTY: State = {
@@ -79,6 +88,8 @@ const EMPTY: State = {
   declaracao_variacoes: [],
   frase_apoio: "",
   skill: DEFAULT_SKILL,
+  dor_foco: "",
+  desejo_foco: "",
 };
 
 export default function PosicionamentoPage() {
@@ -127,6 +138,8 @@ export default function PosicionamentoPage() {
             declaracao_variacoes: [],
             frase_apoio: posData.frase_apoio || "",
             skill: (posData.skill as PosicionamentoSkill) || DEFAULT_SKILL,
+            dor_foco: posData.dor_foco || "",
+            desejo_foco: posData.desejo_foco || "",
           });
           if (posData.frase) {
             updateProgress("posicionamento", true);
@@ -241,6 +254,8 @@ export default function PosicionamentoPage() {
           mecanismo_descricao: state.mecanismo_descricao,
           diferencial: state.diferencial_frase,
           skill: state.skill,
+          dor_foco: state.dor_foco || undefined,
+          desejo_foco: state.desejo_foco || undefined,
         }),
       });
       if (!resp.ok) throw new Error();
@@ -280,6 +295,8 @@ export default function PosicionamentoPage() {
           diferencial_categoria: state.diferencial_categoria,
           diferencial_frase: state.diferencial_frase,
           skill: state.skill,
+          dor_foco: state.dor_foco || null,
+          desejo_foco: state.desejo_foco || null,
         }),
       });
       if (!resp.ok) throw new Error();
@@ -653,6 +670,96 @@ export default function PosicionamentoPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Seletor de FOCO ESTRATÉGICO — dor + desejo primários */}
+              {(() => {
+                const currentIcp = icps.find((i) => i.id === state.icp_id);
+                const dores = currentIcp?.pain_points || [];
+                const desejos = currentIcp?.desires || [];
+                if (dores.length === 0 && desejos.length === 0) return null;
+                return (
+                  <div className="space-y-3 pt-2 pb-1 border-b">
+                    <div>
+                      <Label className="text-sm">🎯 Foco estratégico da declaração</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Posicionamento é <strong>ato de exclusão</strong>. Escolha 1 dor e
+                        1 desejo do seu ICP que vão ser o ângulo central. As outras
+                        ficam no fundo, podem aparecer em outros conteúdos depois.
+                      </p>
+                    </div>
+
+                    {dores.length > 0 && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Dor primária a atacar
+                        </Label>
+                        <div className="grid gap-1.5">
+                          {dores.map((d) => {
+                            const active = state.dor_foco === d;
+                            return (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() =>
+                                  setState((s) => ({ ...s, dor_foco: d }))
+                                }
+                                disabled={loading}
+                                className={
+                                  "text-left text-xs rounded-md border p-2.5 transition-all " +
+                                  (active
+                                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                                    : "border-border hover:border-primary/40 hover:bg-muted/30") +
+                                  " disabled:opacity-50"
+                                }
+                              >
+                                <span className="font-mono text-muted-foreground mr-2">
+                                  {active ? "●" : "○"}
+                                </span>
+                                {d}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {desejos.length > 0 && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Desejo primário a prometer
+                        </Label>
+                        <div className="grid gap-1.5">
+                          {desejos.map((d) => {
+                            const active = state.desejo_foco === d;
+                            return (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() =>
+                                  setState((s) => ({ ...s, desejo_foco: d }))
+                                }
+                                disabled={loading}
+                                className={
+                                  "text-left text-xs rounded-md border p-2.5 transition-all " +
+                                  (active
+                                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                                    : "border-border hover:border-primary/40 hover:bg-muted/30") +
+                                  " disabled:opacity-50"
+                                }
+                              >
+                                <span className="font-mono text-muted-foreground mr-2">
+                                  {active ? "●" : "○"}
+                                </span>
+                                {d}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Seletor de estilo (skill) */}
               <div className="space-y-2 pt-2">

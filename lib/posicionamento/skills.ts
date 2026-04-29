@@ -9,6 +9,7 @@ export type PosicionamentoSkill =
   | "ogilvy"
   | "miller"
   | "godin"
+  | "moore"
   | "dunford";
 
 export type SkillDef = {
@@ -134,6 +135,35 @@ export const SKILLS: Record<PosicionamentoSkill, SkillDef> = {
       "Existe um padrão. Você não enxerga porque está dentro dele. Eu vejo porque já estive lá fora.",
   },
 
+  moore: {
+    key: "moore",
+    label: "Geoffrey Moore",
+    subtitle: "Fórmula B2B clássica (Crossing the Chasm)",
+    desc: "Moore (1991) criou a fórmula clássica de positioning statement pra tech B2B. Estrutura rígida com contraste explícito a uma alternativa competitiva.",
+    style:
+      "Formal, declarativa, com fórmula explícita. Contrasta DIRETAMENTE com a alternativa concreta do mercado. Ideal pra B2B/serviços profissionais.",
+    rules: [
+      "ESTRUTURA OBRIGATÓRIA (siga fielmente):",
+      "  Frase 1: 'Para [SEGMENTO ESPECÍFICO] que [NECESSIDADE/SITUAÇÃO], [VOCÊ/SEU TRABALHO] é [CATEGORIA] que [BENEFÍCIO PRINCIPAL].'",
+      "  Frase 2: 'Diferente de [ALTERNATIVA CONCRETA DO MERCADO], [VOCÊ] [DIFERENCIAÇÃO ESPECÍFICA].'",
+      "A 2ª frase com 'Diferente de...' é OBRIGATÓRIA — é a essência do framework de Moore. Sem ela, não é Moore.",
+      "[CATEGORIA] deve ser CONCRETA: 'consultor', 'mentoria', 'agência', 'treinamento', 'plataforma' — NÃO 'parceiro estratégico', 'aliado', 'jornada'.",
+      "[ALTERNATIVA] deve ser nominal e específica: 'consultoria tradicional', 'curso online genérico', 'agência full-service', 'fazer in-house'. Evite 'a maioria dos consultores' (vago).",
+      "Tom formal/B2B, mas SEM jargão acadêmico (igual Dunford).",
+      "Pode ter 2 frases separadas por ponto — não tente comprimir tudo em uma só.",
+    ],
+    rules_frase_apoio: [
+      "Detalha o COMO (método/processo) que sustenta a diferenciação declarada.",
+      "Cita o método/framework com nome se houver — caso contrário, descreve em 1 frase concreta.",
+      "Pode incluir credencial concreta (anos, contexto profissional) se ajudar a sustentar a categoria.",
+      "Evita repetir a estrutura 'Diferente de X' — essa fica só na declaração.",
+    ],
+    example:
+      "Para fundadores de consultoria que precisam escalar discovery sem virar fábrica de slides, somos a mentoria que instala o framework de qualificação direto na operação. Diferente de treinamento corporativo genérico, ensinamos com seu time aplicando em deals reais.",
+    example_frase_apoio:
+      "Método Discovery 3D, com mentoria 1:1 ao time comercial em ciclos curtos. Quinze anos liderando vendas B2B antes de virar consultor.",
+  },
+
   dunford: {
     key: "dunford",
     label: "April Dunford",
@@ -168,6 +198,7 @@ export const SKILL_ORDER: PosicionamentoSkill[] = [
   "ogilvy",
   "miller",
   "godin",
+  "moore",
   "dunford",
 ];
 

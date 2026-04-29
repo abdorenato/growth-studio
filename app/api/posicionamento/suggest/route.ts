@@ -30,6 +30,8 @@ type Body =
       mecanismo_descricao: string;
       diferencial: string;
       skill?: import("@/lib/posicionamento/skills").PosicionamentoSkill;
+      dor_foco?: string;
+      desejo_foco?: string;
     };
 
 export async function POST(req: Request) {
@@ -91,7 +93,8 @@ export async function POST(req: Request) {
         body.mecanismo_descricao,
         body.diferencial,
         creator,
-        body.skill // default tratado dentro do prompt (DEFAULT_SKILL)
+        body.skill, // default tratado dentro do prompt (DEFAULT_SKILL)
+        { dor_foco: body.dor_foco, desejo_foco: body.desejo_foco }
       );
       const text = await callClaude(system, user, 1500, meta);
       return NextResponse.json(parseJSON(text));

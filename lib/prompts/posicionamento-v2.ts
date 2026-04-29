@@ -108,10 +108,45 @@ export function generateDeclaracaoPrompt(
   mecanismo_descricao: string,
   diferencial: string,
   creator?: Partial<User> | null,
-  skill: PosicionamentoSkill = DEFAULT_SKILL
+  skill: PosicionamentoSkill = DEFAULT_SKILL,
+  /** Foco da declaração: 1 dor primária + 1 desejo primário escolhidos pelo user.
+   *  Se vazio, IA fica livre (comportamento antigo — mas qualidade pior).      */
+  foco?: { dor_foco?: string; desejo_foco?: string }
 ) {
   const userCtx = formatUserContext(creator);
   const skillBlock = buildSkillBlock(skill);
+
+  // Bloco de foco — força exclusão (princípio central de Ries/Trout/Moore/Dunford)
+  const dorFoco = foco?.dor_foco?.trim();
+  const desejoFoco = foco?.desejo_foco?.trim();
+
+  const outrasDores = (icp.pain_points || [])
+    .filter((p) => p && p !== dorFoco)
+    .slice(0, 5);
+  const outrosDesejos = (icp.desires || [])
+    .filter((d) => d && d !== desejoFoco)
+    .slice(0, 5);
+
+  const focoBlock =
+    dorFoco || desejoFoco
+      ? `
+═══════════════════════════════════════════
+🎯 FOCO ESTRATÉGICO DESTA DECLARAÇÃO
+═══════════════════════════════════════════
+${dorFoco ? `DOR PRIMÁRIA (atacar diretamente): "${dorFoco}"` : ""}
+${desejoFoco ? `DESEJO PRIMÁRIO (prometer): "${desejoFoco}"` : ""}
+
+REGRA CRÍTICA: a DECLARAÇÃO PRINCIPAL deve atacar EXATAMENTE essa dor e
+prometer EXATAMENTE esse desejo. NÃO tente cobrir as outras dores/desejos
+listados abaixo — são apenas CONTEXTO DE FUNDO pra você não contradizer
+nada que o ICP sente, mas o ângulo central é o foco acima.
+
+(Posicionamento é ato de EXCLUSÃO — Ries & Trout. Atacar tudo = atacar nada.)
+${outrasDores.length ? `\nOutras dores secundárias (contexto, NÃO ângulo central): ${outrasDores.join(" | ")}` : ""}
+${outrosDesejos.length ? `\nOutros desejos secundários (contexto, NÃO ângulo central): ${outrosDesejos.join(" | ")}` : ""}
+═══════════════════════════════════════════
+`
+      : "";
 
   const system = `Você é especialista em copywriting de posicionamento.
 
@@ -158,7 +193,7 @@ ${userCtx}
 
 ICP:
 ${formatICP(icp)}
-
+${focoBlock}
 RESULTADO QUE ENTREGA: ${resultado}
 
 MÉTODO/MECANISMO (NÃO usar na declaração principal — só na frase de apoio):

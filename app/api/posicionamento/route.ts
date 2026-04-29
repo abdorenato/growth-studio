@@ -30,6 +30,8 @@ export async function POST(req: Request) {
       diferencial_categoria,
       diferencial_frase,
       skill,
+      dor_foco,
+      desejo_foco,
     } = body;
 
     if (!userId || !frase) {
@@ -49,6 +51,8 @@ export async function POST(req: Request) {
         diferencial_categoria: diferencial_categoria || null,
         diferencial_frase: diferencial_frase || null,
         skill: skill || null,
+        dor_foco: dor_foco || null,
+        desejo_foco: desejo_foco || null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" }
