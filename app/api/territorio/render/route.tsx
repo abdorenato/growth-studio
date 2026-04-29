@@ -267,8 +267,12 @@ function FronteirasSlide({
 }) {
   const neg = negativas.slice(0, 4);
   const pos = positivas.slice(0, 4);
-  const max = Math.max(neg.length, pos.length);
-  const fs = max <= 2 ? 28 : max === 3 ? 24 : 20;
+  const total = neg.length + pos.length;
+
+  // Em layout vertical, cada bloco ocupa largura total -> da pra ter
+  // fonte maior. Reduz so quando ha muitos itens.
+  const itemFs = total <= 4 ? 32 : total <= 6 ? 28 : 24;
+  const itemGap = total <= 4 ? 14 : total <= 6 ? 11 : 9;
 
   return (
     <div
@@ -278,7 +282,8 @@ function FronteirasSlide({
         flex: 1,
         justifyContent: "center",
         alignItems: "flex-start",
-        gap: 24,
+        gap: 28,
+        width: "100%",
       }}
     >
       <div
@@ -293,86 +298,89 @@ function FronteirasSlide({
         Como eu opero
       </div>
 
+      {/* Bloco NÃO FAÇO */}
       <div
         style={{
           display: "flex",
-          gap: 24,
+          flexDirection: "column",
           width: "100%",
+          gap: itemGap,
         }}
       >
-        {/* Coluna negativas */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            gap: 12,
+            fontSize: 24,
+            color: "#ef4444",
+            fontWeight: 800,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
           }}
         >
+          🚫 Não faço
+        </div>
+        {neg.map((f, i) => (
           <div
+            key={`n-${i}`}
             style={{
               display: "flex",
-              fontSize: 22,
-              color: "#ef4444",
-              fontWeight: 700,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
+              fontSize: itemFs,
+              color: "rgba(255,255,255,0.95)",
+              fontWeight: 600,
+              lineHeight: 1.25,
+              opacity: 0.85,
             }}
           >
-            🚫 Não faço
+            {f}
           </div>
-          {neg.map((f, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                fontSize: fs,
-                color: "#ffffff",
-                fontWeight: 600,
-                lineHeight: 1.25,
-              }}
-            >
-              {f}
-            </div>
-          ))}
-        </div>
+        ))}
+      </div>
 
-        {/* Coluna positivas */}
+      {/* Linha divisória sutil */}
+      <div
+        style={{
+          display: "flex",
+          width: "60%",
+          height: 2,
+          background: "rgba(255,255,255,0.1)",
+        }}
+      />
+
+      {/* Bloco FAÇO */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          gap: itemGap,
+        }}
+      >
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            gap: 12,
+            fontSize: 24,
+            color: accent,
+            fontWeight: 800,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
           }}
         >
+          ✅ Faço
+        </div>
+        {pos.map((f, i) => (
           <div
+            key={`p-${i}`}
             style={{
               display: "flex",
-              fontSize: 22,
-              color: accent,
+              fontSize: itemFs,
+              color: "#ffffff",
               fontWeight: 700,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
+              lineHeight: 1.25,
             }}
           >
-            ✅ Faço
+            {f}
           </div>
-          {pos.map((f, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                fontSize: fs,
-                color: "#ffffff",
-                fontWeight: 600,
-                lineHeight: 1.25,
-              }}
-            >
-              {f}
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
     </div>
   );
