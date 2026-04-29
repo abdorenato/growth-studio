@@ -56,11 +56,22 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error("Posicionamento save error:", error);
-      return NextResponse.json({ error: "Falha" }, { status: 500 });
+      // Detalhe do Postgres ajuda a diagnosticar (ex: coluna inexistente)
+      return NextResponse.json(
+        {
+          error: "Falha ao salvar",
+          detail: error.message,
+          code: error.code,
+        },
+        { status: 500 }
+      );
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Erro" }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Erro" },
+      { status: 500 }
+    );
   }
 }
