@@ -32,6 +32,8 @@ export async function POST(req: Request) {
       skill,
       dor_foco,
       desejo_foco,
+      dor_secundaria,
+      desejo_secundaria,
     } = body;
 
     if (!userId || !frase) {
@@ -53,6 +55,8 @@ export async function POST(req: Request) {
         skill: skill || null,
         dor_foco: dor_foco || null,
         desejo_foco: desejo_foco || null,
+        dor_secundaria: dor_secundaria || null,
+        desejo_secundaria: desejo_secundaria || null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" }

@@ -72,9 +72,13 @@ type State = {
   frase_apoio: string;
   // Estilo (skill) usado na geracao da declaracao
   skill: PosicionamentoSkill;
-  // Foco estrategico (1 dor + 1 desejo escolhidos do ICP)
+  // Foco estrategico:
+  //   dor_foco / desejo_foco          → PRIMARIA (declaracao principal)
+  //   dor_secundaria / desejo_secundaria → SECUNDARIA opcional (frase de apoio)
   dor_foco: string;
   desejo_foco: string;
+  dor_secundaria: string;
+  desejo_secundaria: string;
 };
 
 const EMPTY: State = {
@@ -90,6 +94,8 @@ const EMPTY: State = {
   skill: DEFAULT_SKILL,
   dor_foco: "",
   desejo_foco: "",
+  dor_secundaria: "",
+  desejo_secundaria: "",
 };
 
 export default function PosicionamentoPage() {
@@ -140,6 +146,8 @@ export default function PosicionamentoPage() {
             skill: (posData.skill as PosicionamentoSkill) || DEFAULT_SKILL,
             dor_foco: posData.dor_foco || "",
             desejo_foco: posData.desejo_foco || "",
+            dor_secundaria: posData.dor_secundaria || "",
+            desejo_secundaria: posData.desejo_secundaria || "",
           });
           if (posData.frase) {
             updateProgress("posicionamento", true);
@@ -256,6 +264,8 @@ export default function PosicionamentoPage() {
           skill: state.skill,
           dor_foco: state.dor_foco || undefined,
           desejo_foco: state.desejo_foco || undefined,
+          dor_secundaria: state.dor_secundaria || undefined,
+          desejo_secundaria: state.desejo_secundaria || undefined,
         }),
       });
       if (!resp.ok) throw new Error();
@@ -297,6 +307,8 @@ export default function PosicionamentoPage() {
           skill: state.skill,
           dor_foco: state.dor_foco || null,
           desejo_foco: state.desejo_foco || null,
+          dor_secundaria: state.dor_secundaria || null,
+          desejo_secundaria: state.desejo_secundaria || null,
         }),
       });
       if (!resp.ok) throw new Error();
@@ -682,26 +694,33 @@ export default function PosicionamentoPage() {
                     <div>
                       <Label className="text-sm">🎯 Foco estratégico da declaração</Label>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Posicionamento é <strong>ato de exclusão</strong>. Escolha 1 dor e
-                        1 desejo do seu ICP que vão ser o ângulo central. As outras
-                        ficam no fundo, podem aparecer em outros conteúdos depois.
+                        Posicionamento é <strong>ato de exclusão</strong>. Escolha 1 dor
+                        e 1 desejo <strong>primários</strong> (vão pra declaração). Pode
+                        adicionar 1 secundário de cada (opcional, aparece na frase de
+                        apoio).
                       </p>
                     </div>
 
                     {dores.length > 0 && (
                       <div className="space-y-1.5">
                         <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                          Dor primária a atacar
+                          Dor primária <span className="text-foreground/70">(declaração principal)</span>
                         </Label>
                         <div className="grid gap-1.5">
                           {dores.map((d) => {
                             const active = state.dor_foco === d;
                             return (
                               <button
-                                key={d}
+                                key={`dor-pri-${d}`}
                                 type="button"
                                 onClick={() =>
-                                  setState((s) => ({ ...s, dor_foco: d }))
+                                  setState((s) => ({
+                                    ...s,
+                                    dor_foco: d,
+                                    // se secundaria virou igual, limpa
+                                    dor_secundaria:
+                                      s.dor_secundaria === d ? "" : s.dor_secundaria,
+                                  }))
                                 }
                                 disabled={loading}
                                 className={
@@ -720,23 +739,84 @@ export default function PosicionamentoPage() {
                             );
                           })}
                         </div>
+
+                        {/* Dor SECUNDARIA — so aparece se primaria escolhida E houver outras opcoes */}
+                        {state.dor_foco && dores.filter((d) => d !== state.dor_foco).length > 0 && (
+                          <div className="space-y-1.5 pt-2">
+                            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                              Dor secundária <span className="text-foreground/70">(opcional · frase de apoio)</span>
+                            </Label>
+                            <div className="grid gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setState((s) => ({ ...s, dor_secundaria: "" }))
+                                }
+                                disabled={loading}
+                                className={
+                                  "text-left text-xs rounded-md border p-2 transition-all italic " +
+                                  (state.dor_secundaria === ""
+                                    ? "border-muted-foreground/40 bg-muted/40"
+                                    : "border-border text-muted-foreground hover:border-muted-foreground/40")
+                                }
+                              >
+                                <span className="font-mono mr-2">
+                                  {state.dor_secundaria === "" ? "●" : "○"}
+                                </span>
+                                Nenhuma
+                              </button>
+                              {dores
+                                .filter((d) => d !== state.dor_foco)
+                                .map((d) => {
+                                  const active = state.dor_secundaria === d;
+                                  return (
+                                    <button
+                                      key={`dor-sec-${d}`}
+                                      type="button"
+                                      onClick={() =>
+                                        setState((s) => ({ ...s, dor_secundaria: d }))
+                                      }
+                                      disabled={loading}
+                                      className={
+                                        "text-left text-xs rounded-md border p-2.5 transition-all " +
+                                        (active
+                                          ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20"
+                                          : "border-border hover:border-amber-500/40 hover:bg-muted/30") +
+                                        " disabled:opacity-50"
+                                      }
+                                    >
+                                      <span className="font-mono text-muted-foreground mr-2">
+                                        {active ? "●" : "○"}
+                                      </span>
+                                      {d}
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
                     {desejos.length > 0 && (
                       <div className="space-y-1.5">
                         <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                          Desejo primário a prometer
+                          Desejo primário <span className="text-foreground/70">(declaração principal)</span>
                         </Label>
                         <div className="grid gap-1.5">
                           {desejos.map((d) => {
                             const active = state.desejo_foco === d;
                             return (
                               <button
-                                key={d}
+                                key={`des-pri-${d}`}
                                 type="button"
                                 onClick={() =>
-                                  setState((s) => ({ ...s, desejo_foco: d }))
+                                  setState((s) => ({
+                                    ...s,
+                                    desejo_foco: d,
+                                    desejo_secundaria:
+                                      s.desejo_secundaria === d ? "" : s.desejo_secundaria,
+                                  }))
                                 }
                                 disabled={loading}
                                 className={
@@ -755,6 +835,62 @@ export default function PosicionamentoPage() {
                             );
                           })}
                         </div>
+
+                        {/* Desejo SECUNDARIO */}
+                        {state.desejo_foco && desejos.filter((d) => d !== state.desejo_foco).length > 0 && (
+                          <div className="space-y-1.5 pt-2">
+                            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                              Desejo secundário <span className="text-foreground/70">(opcional · frase de apoio)</span>
+                            </Label>
+                            <div className="grid gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setState((s) => ({ ...s, desejo_secundaria: "" }))
+                                }
+                                disabled={loading}
+                                className={
+                                  "text-left text-xs rounded-md border p-2 transition-all italic " +
+                                  (state.desejo_secundaria === ""
+                                    ? "border-muted-foreground/40 bg-muted/40"
+                                    : "border-border text-muted-foreground hover:border-muted-foreground/40")
+                                }
+                              >
+                                <span className="font-mono mr-2">
+                                  {state.desejo_secundaria === "" ? "●" : "○"}
+                                </span>
+                                Nenhum
+                              </button>
+                              {desejos
+                                .filter((d) => d !== state.desejo_foco)
+                                .map((d) => {
+                                  const active = state.desejo_secundaria === d;
+                                  return (
+                                    <button
+                                      key={`des-sec-${d}`}
+                                      type="button"
+                                      onClick={() =>
+                                        setState((s) => ({ ...s, desejo_secundaria: d }))
+                                      }
+                                      disabled={loading}
+                                      className={
+                                        "text-left text-xs rounded-md border p-2.5 transition-all " +
+                                        (active
+                                          ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500/20"
+                                          : "border-border hover:border-amber-500/40 hover:bg-muted/30") +
+                                        " disabled:opacity-50"
+                                      }
+                                    >
+                                      <span className="font-mono text-muted-foreground mr-2">
+                                        {active ? "●" : "○"}
+                                      </span>
+                                      {d}
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

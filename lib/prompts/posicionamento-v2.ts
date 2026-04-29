@@ -109,9 +109,16 @@ export function generateDeclaracaoPrompt(
   diferencial: string,
   creator?: Partial<User> | null,
   skill: PosicionamentoSkill = DEFAULT_SKILL,
-  /** Foco da declaração: 1 dor primária + 1 desejo primário escolhidos pelo user.
-   *  Se vazio, IA fica livre (comportamento antigo — mas qualidade pior).      */
-  foco?: { dor_foco?: string; desejo_foco?: string }
+  /** Foco da declaração:
+   *  - dor_foco / desejo_foco       → PRIMÁRIA (vai pra declaração principal)
+   *  - dor_secundaria / desejo_secundaria → SECUNDÁRIA opcional (vai pra frase de apoio)
+   *  Se tudo vazio, IA fica livre (comportamento antigo — qualidade pior).        */
+  foco?: {
+    dor_foco?: string;
+    desejo_foco?: string;
+    dor_secundaria?: string;
+    desejo_secundaria?: string;
+  }
 ) {
   const userCtx = formatUserContext(creator);
   const skillBlock = buildSkillBlock(skill);
@@ -119,31 +126,46 @@ export function generateDeclaracaoPrompt(
   // Bloco de foco — força exclusão (princípio central de Ries/Trout/Moore/Dunford)
   const dorFoco = foco?.dor_foco?.trim();
   const desejoFoco = foco?.desejo_foco?.trim();
+  const dorSec = foco?.dor_secundaria?.trim();
+  const desejoSec = foco?.desejo_secundaria?.trim();
 
   const outrasDores = (icp.pain_points || [])
-    .filter((p) => p && p !== dorFoco)
-    .slice(0, 5);
+    .filter((p) => p && p !== dorFoco && p !== dorSec)
+    .slice(0, 4);
   const outrosDesejos = (icp.desires || [])
-    .filter((d) => d && d !== desejoFoco)
-    .slice(0, 5);
+    .filter((d) => d && d !== desejoFoco && d !== desejoSec)
+    .slice(0, 4);
 
   const focoBlock =
-    dorFoco || desejoFoco
+    dorFoco || desejoFoco || dorSec || desejoSec
       ? `
 ═══════════════════════════════════════════
 🎯 FOCO ESTRATÉGICO DESTA DECLARAÇÃO
 ═══════════════════════════════════════════
-${dorFoco ? `DOR PRIMÁRIA (atacar diretamente): "${dorFoco}"` : ""}
-${desejoFoco ? `DESEJO PRIMÁRIO (prometer): "${desejoFoco}"` : ""}
 
-REGRA CRÍTICA: a DECLARAÇÃO PRINCIPAL deve atacar EXATAMENTE essa dor e
-prometer EXATAMENTE esse desejo. NÃO tente cobrir as outras dores/desejos
-listados abaixo — são apenas CONTEXTO DE FUNDO pra você não contradizer
-nada que o ICP sente, mas o ângulo central é o foco acima.
+— PRIMÁRIA (vai pra DECLARAÇÃO PRINCIPAL e variações):
+${dorFoco ? `  • DOR primária a atacar: "${dorFoco}"` : "  • (sem dor primária definida)"}
+${desejoFoco ? `  • DESEJO primário a prometer: "${desejoFoco}"` : "  • (sem desejo primário definido)"}
+
+${dorSec || desejoSec
+          ? `— SECUNDÁRIA (APENAS na FRASE DE APOIO, opcional, NÃO na principal):
+${dorSec ? `  • Dor secundária (pode aparecer na frase de apoio): "${dorSec}"` : ""}
+${desejoSec ? `  • Desejo secundário (pode aparecer na frase de apoio): "${desejoSec}"` : ""}
+`
+          : ""}
+REGRAS CRÍTICAS:
+1. A DECLARAÇÃO PRINCIPAL e as 2 VARIAÇÕES atacam SÓ a dor primária e
+   prometem SÓ o desejo primário. Secundárias NÃO entram aqui.
+2. A FRASE DE APOIO pode (opcionalmente) tocar na dor/desejo secundárias
+   pra enriquecer profundidade — mas não é obrigatório. Se não fizer
+   sentido, ignora as secundárias na frase de apoio também.
+3. As outras dores/desejos listados abaixo são CONTEXTO DE FUNDO — só
+   garantem que você não contradiga nada que o ICP sente. Não use como
+   ângulo de nada.
 
 (Posicionamento é ato de EXCLUSÃO — Ries & Trout. Atacar tudo = atacar nada.)
-${outrasDores.length ? `\nOutras dores secundárias (contexto, NÃO ângulo central): ${outrasDores.join(" | ")}` : ""}
-${outrosDesejos.length ? `\nOutros desejos secundários (contexto, NÃO ângulo central): ${outrosDesejos.join(" | ")}` : ""}
+${outrasDores.length ? `\nOutras dores (apenas contexto de fundo, NÃO usar): ${outrasDores.join(" | ")}` : ""}
+${outrosDesejos.length ? `\nOutros desejos (apenas contexto de fundo, NÃO usar): ${outrosDesejos.join(" | ")}` : ""}
 ═══════════════════════════════════════════
 `
       : "";
