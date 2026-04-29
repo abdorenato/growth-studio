@@ -22,6 +22,12 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 
 import { useUserStore } from "@/hooks/use-user-store";
+import {
+  DEFAULT_SKILL,
+  SKILLS,
+  SKILL_ORDER,
+  type PosicionamentoSkill,
+} from "@/lib/posicionamento/skills";
 
 type ICPRow = { id: string; name: string; niche: string };
 
@@ -58,6 +64,8 @@ type State = {
   declaracao_principal: string;
   declaracao_variacoes: string[];
   frase_apoio: string;
+  // Estilo (skill) usado na geracao da declaracao
+  skill: PosicionamentoSkill;
 };
 
 const EMPTY: State = {
@@ -70,6 +78,7 @@ const EMPTY: State = {
   declaracao_principal: "",
   declaracao_variacoes: [],
   frase_apoio: "",
+  skill: DEFAULT_SKILL,
 };
 
 export default function PosicionamentoPage() {
@@ -117,6 +126,7 @@ export default function PosicionamentoPage() {
             declaracao_principal: posData.frase || "",
             declaracao_variacoes: [],
             frase_apoio: posData.frase_apoio || "",
+            skill: (posData.skill as PosicionamentoSkill) || DEFAULT_SKILL,
           });
           if (posData.frase) {
             updateProgress("posicionamento", true);
@@ -230,6 +240,7 @@ export default function PosicionamentoPage() {
           mecanismo_nome: state.mecanismo_nome,
           mecanismo_descricao: state.mecanismo_descricao,
           diferencial: state.diferencial_frase,
+          skill: state.skill,
         }),
       });
       if (!resp.ok) throw new Error();
@@ -268,6 +279,7 @@ export default function PosicionamentoPage() {
           mecanismo_nome: state.mecanismo_nome,
           diferencial_categoria: state.diferencial_categoria,
           diferencial_frase: state.diferencial_frase,
+          skill: state.skill,
         }),
       });
       if (!resp.ok) throw new Error();
@@ -639,6 +651,55 @@ export default function PosicionamentoPage() {
                   <p className="text-sm text-muted-foreground mt-1">
                     Curta, clara, repetível em voz alta. Diferencial e método ficam separados em &quot;frase de apoio&quot;.
                   </p>
+                </div>
+              </div>
+
+              {/* Seletor de estilo (skill) */}
+              <div className="space-y-2 pt-2">
+                <Label className="text-sm">Estilo de escrita</Label>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Cada autor tem uma forma diferente de escrever posicionamento. Escolha quem escreve a sua.
+                </p>
+                <div className="grid sm:grid-cols-2 gap-2 pt-1">
+                  {SKILL_ORDER.map((key) => {
+                    const def = SKILLS[key];
+                    const active = state.skill === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setState((s) => ({ ...s, skill: key }))}
+                        disabled={loading}
+                        className={
+                          "text-left rounded-lg border p-3 transition-all " +
+                          (active
+                            ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                            : "border-border hover:border-primary/40 hover:bg-muted/30") +
+                          " disabled:opacity-50"
+                        }
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">{def.label}</span>
+                          {active && (
+                            <span className="text-xs text-primary font-medium">
+                              ✓ selecionado
+                            </span>
+                          )}
+                          {key === DEFAULT_SKILL && !active && (
+                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                              padrão
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                          {def.subtitle}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 leading-snug">
+                          {def.desc}
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

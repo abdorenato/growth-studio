@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       mecanismo_nome,
       diferencial_categoria,
       diferencial_frase,
+      skill,
     } = body;
 
     if (!userId || !frase) {
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
         mecanismo_nome: mecanismo_nome || null,
         diferencial_categoria: diferencial_categoria || null,
         diferencial_frase: diferencial_frase || null,
+        skill: skill || null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" }

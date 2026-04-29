@@ -29,6 +29,7 @@ type Body =
       mecanismo_nome: string;
       mecanismo_descricao: string;
       diferencial: string;
+      skill?: import("@/lib/posicionamento/skills").PosicionamentoSkill;
     };
 
 export async function POST(req: Request) {
@@ -89,7 +90,8 @@ export async function POST(req: Request) {
         body.mecanismo_nome,
         body.mecanismo_descricao,
         body.diferencial,
-        creator
+        creator,
+        body.skill // default tratado dentro do prompt (DEFAULT_SKILL)
       );
       const text = await callClaude(system, user, 1500, meta);
       return NextResponse.json(parseJSON(text));

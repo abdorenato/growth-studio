@@ -1,6 +1,11 @@
 import type { ICP, MapaVoz, User } from "@/types";
 import { formatICP } from "./oferta";
 import { formatUserContext } from "./_user-context";
+import {
+  buildSkillBlock,
+  DEFAULT_SKILL,
+  type PosicionamentoSkill,
+} from "@/lib/posicionamento/skills";
 
 export type DiferencialCategoria = "metodo" | "filosofia" | "origem";
 
@@ -102,35 +107,33 @@ export function generateDeclaracaoPrompt(
   mecanismo_nome: string,
   mecanismo_descricao: string,
   diferencial: string,
-  creator?: Partial<User> | null
+  creator?: Partial<User> | null,
+  skill: PosicionamentoSkill = DEFAULT_SKILL
 ) {
   const userCtx = formatUserContext(creator);
+  const skillBlock = buildSkillBlock(skill);
 
   const system = `Você é especialista em copywriting de posicionamento.
 
 Gere uma DECLARAÇÃO DE POSICIONAMENTO clara, curta e forte.
 
-REGRAS OBRIGATÓRIAS:
-- Frase com no máximo 2 linhas
+═══════════════════════════════════════════
+${skillBlock}
+═══════════════════════════════════════════
+
+REGRAS UNIVERSAIS (somam às do estilo escolhido — todas valem):
 - Deve conter, de forma natural:
   • Quem o usuário ajuda (ICP claro)
   • Qual problema resolve (dor específica)
   • Qual resultado gera (transformação concreta ou mensurável)
-- Linguagem simples, direta, sem jargões
-- NÃO usar frases longas com múltiplos "e" encadeados
 - NÃO misturar método, história pessoal ou diferencial na frase principal
   (esses elementos vão SEPARADOS, na frase de apoio)
 - EVITAR palavras genéricas: "soluções", "transformação", "potencializar", "alavancar", "destravar"
 - Deve soar como algo fácil de repetir em voz alta — em palestra, no elevador, em DM
 
-EXEMPLOS BONS:
-- "Ajudo consultores B2B a fechar 3x mais reuniões qualificadas em 90 dias."
-- "Ensino mulheres 40+ a recuperar a força sem academia lotada."
-- "Mostro pra fundadores de SaaS quando vale a pena (e quando não vale) levantar capital."
-
-EXEMPLOS RUINS:
+EXEMPLO DE DECLARAÇÃO RUIM (independente do estilo):
 - "Ajudo profissionais a alcançar transformação e potencializar seu negócio através de soluções estratégicas e meu método único de 7 etapas e atendimento personalizado."
-  (longa, genérica, mistura tudo)
+  (longa, genérica, mistura tudo, palavras vazias)
 
 DADOS DO USUÁRIO:
 ${userCtx}
@@ -147,10 +150,10 @@ MÉTODO/MECANISMO (NÃO usar na declaração principal — só na frase de apoio
 DIFERENCIAL (NÃO usar na declaração principal — só na frase de apoio):
 ${diferencial || "(sem diferencial declarado)"}
 
-Saída esperada:
+Saída esperada (no estilo escolhido acima):
 - 1 declaração principal
-- 2 variações alternativas (mesmas regras, formulações diferentes)
-- 1 frase de apoio (carrega diferencial/método/autoridade — pode ser usada DEPOIS da declaração principal)
+- 2 variações alternativas (mesmas regras, formulações diferentes — TODAS no mesmo estilo)
+- 1 frase de apoio (carrega diferencial/método/autoridade — usada DEPOIS da declaração principal)
 
 Responda EXCLUSIVAMENTE com JSON:
 {
