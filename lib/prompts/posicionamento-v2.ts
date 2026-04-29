@@ -125,15 +125,33 @@ REGRAS UNIVERSAIS (somam às do estilo escolhido — todas valem):
 - Deve conter, de forma natural:
   • Quem o usuário ajuda (ICP claro)
   • Qual problema resolve (dor específica)
-  • Qual resultado gera (transformação concreta ou mensurável)
+  • Qual resultado gera (transformação CONCRETA mas SEM número específico)
 - NÃO misturar método, história pessoal ou diferencial na frase principal
   (esses elementos vão SEPARADOS, na frase de apoio)
-- EVITAR palavras genéricas: "soluções", "transformação", "potencializar", "alavancar", "destravar"
-- Deve soar como algo fácil de repetir em voz alta — em palestra, no elevador, em DM
+- PROIBIDO usar números/percentuais específicos (ex: "25-40% margem", "3x mais",
+  "em 90 dias", "100 clientes") na DECLARAÇÃO PRINCIPAL e nas VARIAÇÕES.
+  Princípio: posicionamento = lugar na mente do cliente, NÃO peça de venda.
+  Sem prova ao lado, número específico soa feature de copy duvidosa.
+  Genericidade aqui é POSITIVA: "aumentar margem" vence "aumentar margem em
+  25%". Números reais ficam pra frase de apoio (com contexto/método) ou
+  material de venda. EXCEÇÃO: timing de método na frase de apoio é OK se for
+  diferenciador real (ex: "ciclos de 90 dias").
+- EVITAR palavras genéricas: "soluções", "transformação", "potencializar",
+  "alavancar", "destravar"
+- Deve soar como algo fácil de repetir em voz alta — em palestra, no elevador,
+  em DM
+- AS 2 VARIAÇÕES DEVEM SER REALMENTE DIFERENTES: diferentes da principal E
+  diferentes entre si. Diferentes em estrutura (abertura, ordem de elementos)
+  E em ângulo. Se a primeira começa com "Você...", a segunda deve começar de
+  outro jeito. Se uma é dicotomia, a outra é direta. NÃO copie a principal
+  trocando 2 palavras — isso não é variação, é repetição.
 
 EXEMPLO DE DECLARAÇÃO RUIM (independente do estilo):
-- "Ajudo profissionais a alcançar transformação e potencializar seu negócio através de soluções estratégicas e meu método único de 7 etapas e atendimento personalizado."
-  (longa, genérica, mistura tudo, palavras vazias)
+- "Ajudo profissionais a alcançar transformação e potencializar seu negócio
+  através de soluções estratégicas e meu método único de 7 etapas e atendimento
+  personalizado." (longa, genérica, mistura tudo, palavras vazias)
+- "Ajudo X a aumentar margem em 25-40% em 90 dias." (número específico sem
+  prova ao lado — soa pitch de venda, não posicionamento)
 
 DADOS DO USUÁRIO:
 ${userCtx}
