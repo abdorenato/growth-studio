@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, RotateCcw, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, RotateCcw, Check, Sparkles, Mic, Type } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,22 +17,47 @@ import { ARCHETYPES, DISCOVERY_QUESTIONS } from "@/lib/voz/constants";
 import { firstName } from "@/lib/utils";
 import type { ArchetypeKey, MapaVoz } from "@/types";
 
+import { AudioMode, type AnalysisResult } from "./_audio-mode";
+
 type VozResult = {
   arquetipo_primario: ArchetypeKey;
   arquetipo_secundario: ArchetypeKey;
   justificativa: string;
   mapa_voz: MapaVoz;
+  // Campos extras quando vem por audio
+  insights_especificos?: string[];
+  extracao_bruta?: AnalysisResult["extracao_bruta"];
+  transcricao?: string;
 };
 
-type Step = "perguntas" | "revisao";
+type Step = "modo" | "perguntas" | "audio" | "revisao";
 
 export default function VozPage() {
   const router = useRouter();
   const user = useUserStore((s) => s.user)!;
   const updateProgress = useUserStore((s) => s.updateProgress);
 
-  const [step, setStep] = useState<Step>("perguntas");
+  const [step, setStep] = useState<Step>("modo");
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [voiceConfig, setVoiceConfig] = useState<{
+    enabled: boolean;
+    limitPerUser: number;
+  } | null>(null);
+
+  // Carrega config publica (se voz por audio esta habilitado)
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.voiceDecode) {
+          setVoiceConfig({
+            enabled: Boolean(d.voiceDecode.enabled),
+            limitPerUser: d.voiceDecode.limitPerUser || 3,
+          });
+        }
+      })
+      .catch(() => setVoiceConfig({ enabled: false, limitPerUser: 3 }));
+  }, []);
   const [result, setResult] = useState<VozResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -61,6 +86,25 @@ export default function VozPage() {
     };
     load();
   }, [user.id]);
+
+  // Quando o AudioMode termina, popula result e vai pra revisao
+  const handleAudioComplete = (analysis: AnalysisResult) => {
+    setResult({
+      arquetipo_primario: analysis.arquetipo_primario as ArchetypeKey,
+      arquetipo_secundario: analysis.arquetipo_secundario as ArchetypeKey,
+      justificativa: analysis.justificativa,
+      mapa_voz: analysis.mapa_voz as MapaVoz,
+      insights_especificos: analysis.insights_especificos,
+      extracao_bruta: analysis.extracao_bruta,
+      transcricao: analysis.transcricao,
+    });
+    // Marca origem audio nas respostas pra contexto
+    setAnswers({
+      _origem: "audio",
+      _transcricao: analysis.transcricao || "",
+    });
+    setStep("revisao");
+  };
 
   const handleAnswerChange = (key: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [key]: value }));
@@ -258,20 +302,22 @@ export default function VozPage() {
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
             variant="outline"
-            onClick={() => setStep("perguntas")}
+            onClick={() => setStep("modo")}
             disabled={loading}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Editar respostas
+            Refazer (texto ou áudio)
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleRegerar}
-            disabled={loading}
-          >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Regerar análise
-          </Button>
+          {answers._origem !== "audio" && (
+            <Button
+              variant="outline"
+              onClick={handleRegerar}
+              disabled={loading}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Regerar análise
+            </Button>
+          )}
           <Button onClick={handleSave} disabled={loading} className="sm:ml-auto">
             <Check className="mr-2 h-4 w-4" />
             {loading ? "Salvando..." : "Essa é minha voz"}
@@ -282,11 +328,121 @@ export default function VozPage() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════
+  // ETAPA: ESCOLHA DE MODO (texto vs áudio)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  if (step === "modo") {
+    const audioEnabled = voiceConfig?.enabled ?? false;
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">🎙️ Voz da Marca</h1>
+          <p className="text-muted-foreground mt-1">
+            Antes de falar, precisamos descobrir <b>como</b> você fala.
+          </p>
+        </div>
+
+        <Card className="bg-muted/30">
+          <CardContent className="p-6">
+            <h2 className="text-lg font-semibold">
+              Oi {firstName(user.name)}, aqui é o iAbdo 👋
+            </h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              Tem 2 jeitos de eu descobrir sua voz. Escolhe o que rolar melhor:
+            </p>
+          </CardContent>
+        </Card>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          {/* Card AUDIO (em destaque se enabled) */}
+          {audioEnabled && (
+            <Card
+              className="cursor-pointer hover:border-primary transition-colors border-primary/40 bg-primary/5"
+              onClick={() => setStep("audio")}
+            >
+              <CardContent className="p-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Mic className="w-6 h-6 text-primary" />
+                  </div>
+                  <span className="text-[10px] uppercase tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded font-semibold">
+                    Recomendado
+                  </span>
+                </div>
+                <h3 className="font-semibold text-base">
+                  Falar (audio · ~5 min)
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Grava ou sobe um áudio. A IA analisa <b>como você fala</b>{" "}
+                  literalmente — captura voz real, não voz declarada.
+                </p>
+                <ul className="text-xs text-muted-foreground space-y-1 pt-1">
+                  <li>✓ Mais natural pra quem está acostumado a áudio</li>
+                  <li>✓ Pega palavras e frases da sua boca</li>
+                  <li>✓ Áudio é deletado após processar</li>
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Card TEXTO */}
+          <Card
+            className="cursor-pointer hover:border-primary/40 transition-colors"
+            onClick={() => setStep("perguntas")}
+          >
+            <CardContent className="p-6 space-y-3">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                <Type className="w-6 h-6" />
+              </div>
+              <h3 className="font-semibold text-base">
+                Escrever (texto · ~10 min)
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Responde 6 perguntas digitando. Bom pra quem prefere pensar com
+                calma antes de responder.
+              </p>
+              <ul className="text-xs text-muted-foreground space-y-1 pt-1">
+                <li>✓ Pode pausar e voltar</li>
+                <li>✓ Edita antes de mandar</li>
+                <li>{audioEnabled ? "✓ Análise mais lenta de captar voz real" : "✓ Forma padrão"}</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        {!audioEnabled && (
+          <p className="text-xs text-center text-muted-foreground">
+            Modo áudio temporariamente indisponível. Use texto por enquanto.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ETAPA: ÁUDIO
+  // ═══════════════════════════════════════════════════════════════════════
+
+  if (step === "audio") {
+    return (
+      <AudioMode
+        userId={user.id}
+        onComplete={handleAudioComplete}
+        onBack={() => setStep("modo")}
+      />
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
   // ETAPA: PERGUNTAS
   // ═══════════════════════════════════════════════════════════════════════
 
   return (
     <div className="space-y-6">
+      <Button variant="ghost" size="sm" onClick={() => setStep("modo")}>
+        <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+      </Button>
       <div>
         <h1 className="text-3xl font-bold">🎙️ Voz da Marca</h1>
         <p className="text-muted-foreground mt-1">
