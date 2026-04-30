@@ -274,13 +274,27 @@ export async function GET(req: Request) {
   const growthByDay = bucketByDay(leadsTimeline || []);
 
   // ─── LISTA DE LEADS RECENTES ─────────────────────────────────────────
-  const { data: recentLeads } = await supabase
+  const { data: recentLeads, error: recentErr } = await supabase
     .from("users")
     .select(
       "id, email, name, instagram, phone, origem, blocked_at, access_status, is_admin, avatar_url, last_login_at, created_at"
     )
     .order("created_at", { ascending: false })
     .limit(100);
+
+  if (recentErr) {
+    // Falha silenciosa nessa query mascarava o problema (lista de users
+    // ficava vazia sem feedback). Loga + retorna erro estruturado.
+    console.error("[/api/admin/stats] erro listando users:", recentErr);
+    return NextResponse.json(
+      {
+        error: "Falha ao carregar lista de usuários",
+        detail: recentErr.message,
+        hint: "Provável: alguma coluna do select não existe (rodar migrations pendentes)",
+      },
+      { status: 500 }
+    );
+  }
 
   // Pra cada lead, conta modulos
   const leadsComModulos = await Promise.all(
