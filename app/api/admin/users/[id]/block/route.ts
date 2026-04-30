@@ -54,13 +54,16 @@ export async function POST(
       );
     }
 
+    // ATUALIZA access_status (sistema novo, lido pelo middleware do auth Google).
+    // Tambem mantem blocked_at sincronizado pra retrocompat de dashboards/queries.
     const { data, error } = await supabase
       .from("users")
       .update({
+        access_status: action === "block" ? "blocked" : "approved",
         blocked_at: action === "block" ? new Date().toISOString() : null,
       })
       .eq("id", id)
-      .select("id, email, blocked_at")
+      .select("id, email, access_status, blocked_at")
       .single();
 
     if (error) {

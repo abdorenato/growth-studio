@@ -57,12 +57,12 @@ export async function POST(req: Request) {
       ])
     );
 
-    // Pra desbloqueio em massa, scope = 'all' (afeta todos os blocked) é o caso comum
+    // Pra desbloqueio em massa: pega todos com access_status='blocked'
     if (action === "unblock") {
       const { data: candidates } = await supabase
         .from("users")
         .select("id, email")
-        .not("blocked_at", "is", null);
+        .eq("access_status", "blocked");
       const ids = (candidates || []).map((u) => u.id);
 
       if (mode === "preview") {
@@ -76,20 +76,21 @@ export async function POST(req: Request) {
         return NextResponse.json({ affected: 0 });
       }
 
+      // Volta pra approved + limpa blocked_at legado
       const { error } = await supabase
         .from("users")
-        .update({ blocked_at: null })
+        .update({ access_status: "approved", blocked_at: null })
         .in("id", ids);
 
       if (error) throw new Error(error.message);
       return NextResponse.json({ affected: ids.length });
     }
 
-    // BLOCK: monta query base (so blocked_at is null pra nao re-bloquear)
+    // BLOCK: monta query base — so quem nao esta blocked ainda
     let q = supabase
       .from("users")
       .select("id, email")
-      .is("blocked_at", null);
+      .neq("access_status", "blocked");
 
     if (scope === "all-except-admins") {
       // Filtra adminEmails fora
@@ -129,9 +130,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ affected: 0 });
     }
 
+    // Atualiza access_status (sistema novo, lido pelo middleware) +
+    // blocked_at sincronizado pra retrocompat de queries
     const { error: updErr } = await supabase
       .from("users")
-      .update({ blocked_at: new Date().toISOString() })
+      .update({
+        access_status: "blocked",
+        blocked_at: new Date().toISOString(),
+      })
       .in(
         "id",
         filtered.map((u) => u.id)
