@@ -999,9 +999,36 @@ function PendingAlert({
             >
               <div className="min-w-0 flex-1">
                 <p className="font-medium truncate">{u.name || u.email}</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {u.email}
-                  {u.instagram ? ` · @${u.instagram}` : ""}
+                <p className="text-xs text-muted-foreground truncate flex items-center gap-2 flex-wrap">
+                  <span>{u.email}</span>
+                  {u.instagram && (
+                    <>
+                      <span className="text-muted-foreground/50">·</span>
+                      <a
+                        href={`https://instagram.com/${u.instagram.replace(/^@/, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-violet-600 dark:text-violet-400 hover:underline font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        @{u.instagram.replace(/^@/, "")}
+                      </a>
+                    </>
+                  )}
+                  {u.phone && (
+                    <>
+                      <span className="text-muted-foreground/50">·</span>
+                      <a
+                        href={`https://wa.me/55${u.phone.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        📱 WhatsApp
+                      </a>
+                    </>
+                  )}
                 </p>
               </div>
               <div className="flex gap-1 flex-shrink-0">
