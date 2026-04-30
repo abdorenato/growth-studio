@@ -21,6 +21,12 @@ type Stats = {
     sessoes_chat_24h: number;
     total_conteudos: number;
     origem: { chat: number; platform: number; sem_origem: number };
+    users_by_status: {
+      pending: number;
+      approved: number;
+      blocked: number;
+      total: number;
+    };
   };
   utilizacoes: {
     janela_3h: { novos_leads: number; chat_msgs: number; ai_calls: number; modulos_completados: number };
@@ -69,6 +75,9 @@ export default function AdminPage() {
   const [period, setPeriod] = useState<Period>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "approved" | "blocked"
+  >("all");
 
   // Auth: precisa estar logado E ser admin
   useEffect(() => {
@@ -515,11 +524,23 @@ export default function AdminPage() {
           </Card>
         </section>
 
-        {/* Lista de leads */}
+        {/* Lista de leads com filtro por status */}
         <section>
-          <h2 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-            Últimos 50 leads
-          </h2>
+          <div className="flex items-end justify-between flex-wrap gap-2 mb-2">
+            <h2 className="text-xs uppercase tracking-wider text-muted-foreground">
+              Usuários (últimos 100)
+            </h2>
+            <StatusFilter
+              current={statusFilter}
+              onChange={setStatusFilter}
+              counts={{
+                all: stats.overview.users_by_status.total,
+                pending: stats.overview.users_by_status.pending,
+                approved: stats.overview.users_by_status.approved,
+                blocked: stats.overview.users_by_status.blocked,
+              }}
+            />
+          </div>
           <Card>
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
@@ -536,7 +557,13 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.leads_recentes.map((u) => {
+                  {stats.leads_recentes
+                    .filter((u) => {
+                      if (statusFilter === "all") return true;
+                      const s = u.access_status || "pending";
+                      return s === statusFilter;
+                    })
+                    .map((u) => {
                     const status = u.access_status || "pending";
                     const isAdmin = !!u.is_admin;
                     const isPending = status === "pending";
@@ -639,6 +666,57 @@ export default function AdminPage() {
 // ─────────────────────────────────────────────────────────────────────
 // Componentes auxiliares
 // ─────────────────────────────────────────────────────────────────────
+
+function StatusFilter({
+  current,
+  onChange,
+  counts,
+}: {
+  current: "all" | "pending" | "approved" | "blocked";
+  onChange: (s: "all" | "pending" | "approved" | "blocked") => void;
+  counts: { all: number; pending: number; approved: number; blocked: number };
+}) {
+  const opts: Array<{
+    k: "all" | "pending" | "approved" | "blocked";
+    label: string;
+    count: number;
+    color: string;
+  }> = [
+    { k: "all", label: "Todos", count: counts.all, color: "" },
+    { k: "pending", label: "Pending", count: counts.pending, color: "amber" },
+    { k: "approved", label: "Aprovados", count: counts.approved, color: "emerald" },
+    { k: "blocked", label: "Bloqueados", count: counts.blocked, color: "red" },
+  ];
+  return (
+    <div className="inline-flex rounded-md border bg-background p-0.5 flex-wrap">
+      {opts.map((o) => {
+        const active = current === o.k;
+        return (
+          <button
+            key={o.k}
+            onClick={() => onChange(o.k)}
+            className={
+              "px-3 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1.5 " +
+              (active
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground")
+            }
+          >
+            {o.label}
+            <span
+              className={
+                "text-[10px] font-mono px-1.5 py-0 rounded " +
+                (active ? "bg-primary-foreground/20" : "bg-muted")
+              }
+            >
+              {o.count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function PeriodFilter({ period, onChange }: { period: Period; onChange: (p: Period) => void }) {
   const opts: Array<{ k: Period; label: string }> = [

@@ -63,19 +63,31 @@ export async function GET(req: Request) {
       count("conteudos"),
     ]);
 
-  // Origem dos leads
+  // Origem + status (contagens globais — independem do limit dos leads_recentes)
   const { data: origemRows } = await supabase
     .from("users")
-    .select("origem");
+    .select("origem, access_status");
   const origem = {
     chat: 0,
     platform: 0,
     sem_origem: 0,
   };
-  (origemRows || []).forEach((r: { origem: string | null }) => {
+  const usersByStatus = {
+    pending: 0,
+    approved: 0,
+    blocked: 0,
+    total: 0,
+  };
+  (origemRows || []).forEach((r: { origem: string | null; access_status: string | null }) => {
     if (r.origem === "chat") origem.chat++;
     else if (r.origem === "platform") origem.platform++;
     else origem.sem_origem++;
+
+    const s = r.access_status || "pending";
+    if (s === "approved") usersByStatus.approved++;
+    else if (s === "blocked") usersByStatus.blocked++;
+    else usersByStatus.pending++;
+    usersByStatus.total++;
   });
 
   // ─── UTILIZACOES (3h e 24h) ─────────────────────────────────────────
@@ -268,7 +280,7 @@ export async function GET(req: Request) {
       "id, email, name, instagram, phone, origem, blocked_at, access_status, is_admin, avatar_url, last_login_at, created_at"
     )
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(100);
 
   // Pra cada lead, conta modulos
   const leadsComModulos = await Promise.all(
@@ -310,6 +322,7 @@ export async function GET(req: Request) {
       sessoes_chat_24h: sessoesChat24h,
       total_conteudos: totalConteudos,
       origem,
+      users_by_status: usersByStatus,
     },
     utilizacoes: {
       janela_3h: {
