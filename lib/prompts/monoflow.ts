@@ -224,28 +224,51 @@ export function linkedinPrompt(
   const strategyBlock = formatStrategyContext(ctx);
   const stageInstruction = stageBlock(targetStage);
 
-  const system = `Você é copywriter de LinkedIn.
+  const system = `Voce eh copywriter especialista em LinkedIn com foco em performance de alcance e geracao de leads B2B.
+
+REGRAS DA PLATAFORMA (LinkedIn 2026 — siga obrigatoriamente):
+- Tamanho ideal: ENTRE 1.250 E 3.000 caracteres (posts nesse range performam 228% melhor)
+- Posts com 3+ links externos relevantes no CORPO tem 441% mais alcance — algoritmo mudou em 2026, nao penaliza mais links
+- Tom: humano, conversacional, ligeiramente imperfeito — NAO otimizado pra robo
+- Posts que soam como voice note bem estruturado performam melhor
+- Frequencia ideal eh 4-6x semana (alta densidade)
+- Conteudo de nicho tecnico distribui melhor que generico (algoritmo de marco/2026)
+- Paragrafos curtos com quebras de linha (1-3 linhas por bloco)
+- NAO use estilo "sandwich" formal corporativo (intro / desenvolvimento / conclusao)
+
+DIFERENCAS IMPORTANTES VS INSTAGRAM:
+- Hook pode (e deve) ser mais longo e racional — leitor LinkedIn da mais 2-3 segundos antes de scrollar
+- Usuario LinkedIn espera profundidade tecnica, nao soundbite
+- CTA pode ser direto: "comenta aqui", "manda DM", "marca alguem que precisa ver"
+
+CONTEXTO ESTRATEGICO COMPLETO:
+${strategyBlock}
 ${stageInstruction}
 
-${strategyBlock}
-
-TEXTO-MÃE:
+TEXTO-MAE (materia-prima — adapte pra plataforma):
 ${motherText}
 
-REGRAS:
-- Primeira linha: hook no feed do LinkedIn
-- Tom profissional mas humano
-- Quebras de linha pra legibilidade
-- Storytelling quando couber
-- CTA coerente com a editoria
-- Respeite as fronteiras
+REGRAS DE CONSTRUCAO DESTE POST:
+- Primeira linha: hook que para o scroll (pode ter ate ~120 chars). Pense no que aparece antes do "ver mais".
+- Densidade: estruture o post em 3-5 blocos curtos (cada bloco 2-4 linhas)
+- Se fizer sentido naturalmente, sugira 1-3 links externos relevantes (nao force)
+- CTA coerente com a editoria escolhida
+- Respeite a voz da marca (palavras a usar/evitar) e fronteiras do territorio
 
-Responda EXCLUSIVAMENTE com JSON:
+Responda EXCLUSIVAMENTE com JSON nesse formato:
 {
-  "post": "texto completo do post",
-  "hashtags": ["hashtag1", "hashtag2"]
+  "post": "texto completo do post entre 1.250 e 3.000 caracteres, com quebras de linha como \\\\n",
+  "hook_explanation": "1 frase explicando por que essa abertura funciona pra LinkedIn (interno, nao publicado)",
+  "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"],
+  "best_time": "Melhor horario de publicacao pra esse post (ex: 'Terca 8h-10h' ou 'Quarta meio-dia')",
+  "links_suggestion": [
+    "Sugestao de 1 link externo relevante (descreva o tipo de recurso, ex: 'artigo sobre framework X' ou 'estudo sobre Y' — usuario substitui pelo link real)",
+    "Outro link sugerido"
+  ],
+  "engagement_tip": "1 frase com dica especifica pra maximizar comentarios nesse post (ex: 'pergunta aberta no penultimo paragrafo costuma puxar comentario')",
+  "char_count": 1500
 }`;
-  return { system, user: "Crie o post." };
+  return { system, user: "Crie o post LinkedIn seguindo as regras 2026." };
 }
 
 // ─── TIKTOK ────────────────────────────────────────────────────────────────

@@ -842,18 +842,97 @@ function LinkedInView({
   onChange: (d: any) => void;
 }) {
   const set = (patch: any) => onChange({ ...data, ...patch });
+
+  // Conta caracteres do post atual (sweet spot LinkedIn 2026: 1.250-3.000)
+  const postText = data.post || "";
+  const charCount = postText.length;
+  const inSweetSpot = charCount >= 1250 && charCount <= 3000;
+  const tooShort = charCount > 0 && charCount < 1250;
+  const tooLong = charCount > 3000;
+
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold">💼 LinkedIn</h3>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h3 className="font-semibold">💼 LinkedIn</h3>
+        <span
+          className={
+            "text-xs font-mono px-2 py-0.5 rounded " +
+            (inSweetSpot
+              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+              : tooShort
+              ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+              : tooLong
+              ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
+              : "bg-muted text-muted-foreground")
+          }
+          title="Posts entre 1.250 e 3.000 chars performam 228% melhor (LinkedIn 2026)"
+        >
+          {charCount} / 1.250-3.000 chars
+          {tooShort && " · curto"}
+          {tooLong && " · longo demais"}
+          {inSweetSpot && " ✓"}
+        </span>
+      </div>
 
       <div className="space-y-1">
         <MiniLabel>Post completo</MiniLabel>
         <Textarea
-          rows={12}
-          value={data.post || ""}
+          rows={14}
+          value={postText}
           onChange={(e) => set({ post: e.target.value })}
         />
       </div>
+
+      {/* Best time pra publicar */}
+      {data.best_time && (
+        <div className="space-y-1">
+          <MiniLabel>🕐 Melhor horário</MiniLabel>
+          <Input
+            value={data.best_time}
+            onChange={(e) => set({ best_time: e.target.value })}
+            className="text-sm"
+          />
+        </div>
+      )}
+
+      {/* Links sugeridos pra incluir no corpo */}
+      {Array.isArray(data.links_suggestion) && data.links_suggestion.length > 0 && (
+        <div className="space-y-1">
+          <MiniLabel>
+            🔗 Links sugeridos pro corpo do post
+            <span className="text-muted-foreground/70 ml-1 normal-case font-normal">
+              (Posts com 3+ links têm 441% mais alcance)
+            </span>
+          </MiniLabel>
+          <div className="space-y-1.5">
+            {data.links_suggestion.map((link: string, i: number) => (
+              <div key={i} className="flex gap-2 items-start">
+                <span className="text-xs text-muted-foreground mt-2 flex-shrink-0 w-4">
+                  {i + 1}.
+                </span>
+                <Textarea
+                  rows={1}
+                  value={link}
+                  onChange={(e) => {
+                    const arr = [...(data.links_suggestion || [])];
+                    arr[i] = e.target.value;
+                    set({ links_suggestion: arr });
+                  }}
+                  className="text-xs"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Dica de engajamento */}
+      {data.engagement_tip && (
+        <div className="border-l-2 border-primary/40 pl-3 py-1">
+          <MiniLabel>💡 Dica de engajamento</MiniLabel>
+          <p className="text-xs text-muted-foreground mt-0.5">{data.engagement_tip}</p>
+        </div>
+      )}
 
       <HashtagsField
         hashtags={data.hashtags || []}
