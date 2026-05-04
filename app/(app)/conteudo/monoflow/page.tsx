@@ -17,14 +17,22 @@ import { ImageRender } from "@/components/monoflow/image-render";
 import { useUserStore } from "@/hooks/use-user-store";
 import { ESTAGIOS, type Estagio } from "@/lib/estagios/constants";
 
-type Platform = "reels" | "post" | "carousel" | "stories" | "linkedin" | "tiktok";
+type Platform =
+  | "reels"
+  | "post"
+  | "carousel"
+  | "stories"
+  | "linkedin"
+  | "linkedin_carrossel_pdf"
+  | "tiktok";
 
 const PLATFORMS: { key: Platform; label: string; icon: string }[] = [
   { key: "reels", label: "Reels", icon: "📹" },
   { key: "post", label: "Post", icon: "📸" },
   { key: "carousel", label: "Carrossel", icon: "🎠" },
   { key: "stories", label: "Stories", icon: "📱" },
-  { key: "linkedin", label: "LinkedIn", icon: "💼" },
+  { key: "linkedin", label: "LinkedIn (post)", icon: "💼" },
+  { key: "linkedin_carrossel_pdf", label: "LinkedIn (carrossel PDF)", icon: "📑" },
   { key: "tiktok", label: "TikTok", icon: "🎵" },
 ];
 
@@ -48,6 +56,7 @@ export default function MonoflowPage() {
     carousel: true,
     stories: true,
     linkedin: true,
+    linkedin_carrossel_pdf: false,
     tiktok: true,
   });
   const [generating, setGenerating] = useState<Record<Platform, boolean>>({} as any);
@@ -484,6 +493,9 @@ function PlatformCard({
         {platform === "carousel" && <CarouselView data={data} onChange={onChange} />}
         {platform === "stories" && <StoriesView data={data} onChange={onChange} />}
         {platform === "linkedin" && <LinkedInView data={data} onChange={onChange} />}
+        {platform === "linkedin_carrossel_pdf" && (
+          <LinkedInCarrosselPdfView data={data} onChange={onChange} />
+        )}
         {platform === "tiktok" && <TiktokView data={data} onChange={onChange} />}
       </CardContent>
     </Card>
@@ -942,6 +954,178 @@ function LinkedInView({
   );
 }
 
+// ─── LinkedIn Carrossel PDF (formato documento nativo) ──────────────────
+function LinkedInCarrosselPdfView({
+  data,
+  onChange,
+}: {
+  data: any;
+  onChange: (d: any) => void;
+}) {
+  const set = (patch: any) => onChange({ ...data, ...patch });
+  const updateSlide = (i: number, patch: any) => {
+    const slides = [...(data.slides || [])];
+    slides[i] = { ...slides[i], ...patch };
+    set({ slides });
+  };
+  const removeSlide = (i: number) => {
+    const slides = [...(data.slides || [])];
+    slides.splice(i, 1);
+    // re-index
+    slides.forEach((s, idx) => (s.index = idx));
+    set({ slides });
+  };
+  const addSlide = () => {
+    const slides = [...(data.slides || [])];
+    if (slides.length >= 10) return; // LinkedIn permite até 10
+    slides.push({
+      index: slides.length,
+      tipo: "content",
+      headline: "",
+      body: "",
+      visual_note: "",
+    });
+    set({ slides });
+  };
+
+  const slides = data.slides || [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h3 className="font-semibold">📑 LinkedIn — Carrossel PDF</h3>
+        <span className="text-xs text-muted-foreground">
+          {slides.length} / 10 slides
+        </span>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        PDF nativo — densidade de conteúdo é o que faz performar. Formato
+        documento aceita até 10 slides. Capa decide se o leitor abre.
+      </p>
+
+      {/* Slides */}
+      <div className="space-y-3">
+        {slides.map((s: any, i: number) => {
+          const isCover = s.tipo === "cover" || i === 0;
+          const isCta = s.tipo === "cta" || i === slides.length - 1;
+          return (
+            <div
+              key={i}
+              className={
+                "border rounded p-3 space-y-2 " +
+                (isCover
+                  ? "border-primary/40 bg-primary/5"
+                  : isCta
+                  ? "border-emerald-500/40 bg-emerald-500/5"
+                  : "")
+              }
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-mono text-muted-foreground">
+                  Slide {i + 1} {isCover ? "(capa)" : isCta ? "(CTA)" : ""}
+                </span>
+                <select
+                  value={s.tipo || "content"}
+                  onChange={(e) => updateSlide(i, { tipo: e.target.value })}
+                  className="text-xs border rounded px-2 py-0.5 bg-background"
+                >
+                  <option value="cover">cover</option>
+                  <option value="content">content</option>
+                  <option value="data">data</option>
+                  <option value="quote">quote</option>
+                  <option value="cta">cta</option>
+                </select>
+                {slides.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeSlide(i)}
+                    className="text-xs text-red-600 hover:underline"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <Input
+                value={s.headline || ""}
+                onChange={(e) => updateSlide(i, { headline: e.target.value })}
+                placeholder="Headline"
+                className="font-semibold"
+              />
+
+              <Textarea
+                rows={3}
+                value={s.body || ""}
+                onChange={(e) => updateSlide(i, { body: e.target.value })}
+                placeholder="Body (até ~80 palavras)"
+                className="text-sm"
+              />
+
+              {s.visual_note && (
+                <div className="text-xs text-muted-foreground italic border-l-2 border-muted-foreground/20 pl-2">
+                  💡 {s.visual_note}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {slides.length < 10 && (
+          <button
+            type="button"
+            onClick={addSlide}
+            className="w-full text-xs text-muted-foreground hover:text-foreground border border-dashed rounded p-2 hover:border-primary/40"
+          >
+            + Adicionar slide
+          </button>
+        )}
+      </div>
+
+      {/* Caption pra acompanhar o post */}
+      <div className="space-y-1 pt-2">
+        <MiniLabel>Legenda do post LinkedIn (acompanha o PDF)</MiniLabel>
+        <Textarea
+          rows={8}
+          value={data.caption || ""}
+          onChange={(e) => set({ caption: e.target.value })}
+        />
+      </div>
+
+      {/* PDF spec / design brief */}
+      {data.pdf_spec && (
+        <div className="border-l-2 border-primary/40 pl-3 py-1 space-y-1">
+          <MiniLabel>📐 Especificação do PDF</MiniLabel>
+          <p className="text-xs text-muted-foreground">
+            <strong>Dimensões:</strong> {data.pdf_spec.dimensoes_recomendadas || "—"}
+          </p>
+          {data.pdf_spec.design_brief && (
+            <p className="text-xs text-muted-foreground mt-1">
+              <strong>Brief:</strong> {data.pdf_spec.design_brief}
+            </p>
+          )}
+        </div>
+      )}
+
+      {data.best_time && (
+        <div className="space-y-1">
+          <MiniLabel>🕐 Melhor horário</MiniLabel>
+          <Input
+            value={data.best_time}
+            onChange={(e) => set({ best_time: e.target.value })}
+            className="text-sm"
+          />
+        </div>
+      )}
+
+      <HashtagsField
+        hashtags={data.hashtags || []}
+        onChange={(h) => set({ hashtags: h })}
+      />
+    </div>
+  );
+}
+
 function TiktokView({
   data,
   onChange,
@@ -1069,6 +1253,16 @@ function formatCopyText(platform: Platform, data: any): string {
       lines.push("💼 LINKEDIN");
       lines.push("");
       lines.push(data.post || "");
+      break;
+    case "linkedin_carrossel_pdf":
+      lines.push("📑 LINKEDIN — CARROSSEL PDF");
+      lines.push("");
+      (data.slides || []).forEach((s: any, i: number) => {
+        lines.push(`\n--- SLIDE ${i + 1} (${s.tipo || "content"}) ---`);
+        if (s.headline) lines.push(s.headline.toUpperCase());
+        if (s.body) lines.push(s.body);
+      });
+      lines.push(`\n\n--- LEGENDA DO POST ---\n${data.caption || ""}`);
       break;
     case "tiktok":
       lines.push(`🎵 TIKTOK — ${data.title}`);

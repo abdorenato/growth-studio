@@ -8,6 +8,7 @@ import {
   carouselPrompt,
   storiesPrompt,
   linkedinPrompt,
+  linkedinCarrosselPdfPrompt,
   tiktokPrompt,
 } from "@/lib/prompts/monoflow";
 
@@ -17,6 +18,7 @@ type Platform =
   | "carousel"
   | "stories"
   | "linkedin"
+  | "linkedin_carrossel_pdf"
   | "tiktok";
 
 export async function POST(req: Request) {
@@ -69,6 +71,9 @@ export async function POST(req: Request) {
       case "linkedin":
         prompt = linkedinPrompt(ctx, motherText, stage);
         break;
+      case "linkedin_carrossel_pdf":
+        prompt = linkedinCarrosselPdfPrompt(ctx, motherText, stage);
+        break;
       case "tiktok":
         prompt = tiktokPrompt(ctx, motherText, stage);
         break;
@@ -79,7 +84,10 @@ export async function POST(req: Request) {
         );
     }
 
-    const text = await callClaude(prompt.system, prompt.user, 3000, {
+    // Carrossel PDF tem output mais rico (slides + caption longa + spec) — folga
+    const maxTokens = platform === "linkedin_carrossel_pdf" ? 5000 : 3000;
+
+    const text = await callClaude(prompt.system, prompt.user, maxTokens, {
       endpoint: `/api/monoflow/generate (${platform})`,
       userId,
     });

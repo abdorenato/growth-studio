@@ -284,6 +284,85 @@ Responda EXCLUSIVAMENTE com JSON nesse formato:
   return { system, user: "Crie o post LinkedIn seguindo as regras 2026." };
 }
 
+// ─── LINKEDIN CARROSSEL PDF ────────────────────────────────────────────────
+// LinkedIn aceita "documento" como tipo nativo de post (PDF). Diferente do
+// carrossel do Instagram (imagens separadas), aqui eh 1 PDF com varias
+// paginas. Aceita ate 10 slides sem penalizacao. Conteudo mais denso e
+// tecnico funciona melhor — leitor LinkedIn espera profundidade.
+
+export function linkedinCarrosselPdfPrompt(
+  ctx: StrategyContext,
+  motherText: string,
+  targetStage: string | null = null
+) {
+  const strategyBlock = formatStrategyContext(ctx);
+  const stageInstruction = stageBlock(targetStage);
+
+  const system = `Voce eh especialista em carrosseis PDF para LinkedIn (formato "documento" nativo).
+
+DIFERENCAS CRITICAS PRA INSTAGRAM CAROUSEL:
+- LinkedIn carrossel eh PDF nativo (1 arquivo com paginas), NAO imagens separadas
+- Pode ter ate 10 slides sem penalizacao (Instagram caia o alcance acima de 5)
+- Conteudo mais denso e tecnico funciona melhor — espera-se profundidade
+- Leitura mais lenta e deliberada — usuario LinkedIn da tempo pra absorver
+- Texto pode ter ate 80 palavras por slide (Instagram limita a 40)
+- A capa eh CRUCIAL: eh o que aparece no feed antes do PDF expandir
+
+CONTEXTO ESTRATEGICO COMPLETO:
+${strategyBlock}
+${stageInstruction}
+
+TEXTO-MAE (materia-prima — adapte pra formato denso/tecnico):
+${motherText}
+
+REGRAS DE CONSTRUCAO:
+- 5 a 8 slides (sweet spot pra LinkedIn — nem curto demais nem cansativo)
+- Slide 1 (CAPA): titulo forte + numero/promessa de valor (ex: "5 padroes que custam margem"). Eh o slide que decide se vai abrir.
+- Slides do meio: 1 ideia/conceito por slide. Pode usar:
+  - Frame de comparacao (errado vs certo)
+  - Lista numerada com explicacao
+  - Diagrama mental verbalizado
+  - Frase forte + 2-3 bullets de suporte
+- Ultimo slide: CTA + proximo passo (DM, comentario, link em bio, link no perfil)
+- Maximo 80 palavras por slide
+- Tom mais tecnico/analitico que post de feed
+- ZERO markdown (asteriscos, hashtags etc — vira texto literal no PDF)
+
+CONTEXTO DA AUDIENCIA LINKEDIN:
+- Pessoa que abre PDF ja decidiu investir 30+ segundos no conteudo
+- Espera densidade, nao soundbite
+- Frequentemente salva pra ler depois — vale conteudo evergreen
+
+Responda EXCLUSIVAMENTE com JSON:
+{
+  "slides": [
+    {
+      "index": 0,
+      "tipo": "cover",
+      "headline": "Titulo principal da capa",
+      "body": "Subtitulo curto ou tagline (max 15 palavras)",
+      "visual_note": "Sugestao visual pra capa (ex: 'fundo escuro, numero grande em destaque')"
+    },
+    {
+      "index": 1,
+      "tipo": "content",
+      "headline": "Titulo do slide",
+      "body": "Conteudo completo do slide (ate 80 palavras)",
+      "visual_note": "Sugestao visual breve"
+    }
+  ],
+  "caption": "Legenda do post LinkedIn pra acompanhar o PDF (entre 800-2000 chars, com regras 2026: tom voice note, links se fizer sentido, sem markdown)",
+  "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"],
+  "pdf_spec": {
+    "dimensoes_recomendadas": "1080x1350 vertical (formato Linkedin documento)",
+    "orientacao": "vertical",
+    "design_brief": "Briefing curto pro designer/Canva: estilo visual, paleta, tipografia recomendados (3-5 frases)"
+  },
+  "best_time": "Melhor horario de publicacao (ex: 'Terca 8h-10h')"
+}`;
+  return { system, user: "Crie o carrossel PDF LinkedIn." };
+}
+
 // ─── TIKTOK ────────────────────────────────────────────────────────────────
 
 export function tiktokPrompt(
