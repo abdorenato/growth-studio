@@ -317,13 +317,13 @@ ${motherText}
 
 REGRAS DE CONSTRUCAO:
 - 5 a 8 slides (sweet spot pra LinkedIn — nem curto demais nem cansativo)
-- Slide 1 (CAPA): titulo forte + numero/promessa de valor (ex: "5 padroes que custam margem"). Eh o slide que decide se vai abrir.
-- Slides do meio: 1 ideia/conceito por slide. Pode usar:
+- O PRIMEIRO slide eh sempre a CAPA: titulo forte + numero/promessa de valor (ex: "5 padroes que custam margem"). Decide se o leitor abre.
+- Slides do MEIO: 1 ideia/conceito por slide. Pode usar:
   - Frame de comparacao (errado vs certo)
   - Lista numerada com explicacao
   - Diagrama mental verbalizado
   - Frase forte + 2-3 bullets de suporte
-- Ultimo slide: CTA + proximo passo (DM, comentario, link em bio, link no perfil)
+- O ULTIMO slide eh o CTA + proximo passo (DM, comentario, link em bio)
 - Maximo 80 palavras por slide
 - Tom mais tecnico/analitico que post de feed
 - ZERO markdown (asteriscos, hashtags etc — vira texto literal no PDF)
@@ -338,15 +338,13 @@ Responda EXCLUSIVAMENTE com JSON:
   "slides": [
     {
       "index": 0,
-      "tipo": "cover",
-      "headline": "Titulo principal da capa",
+      "headline": "Titulo da CAPA — forte, faz o leitor querer abrir",
       "body": "Subtitulo curto ou tagline (max 15 palavras)",
       "visual_note": "Sugestao visual pra capa (ex: 'fundo escuro, numero grande em destaque')"
     },
     {
       "index": 1,
-      "tipo": "content",
-      "headline": "Titulo do slide",
+      "headline": "Titulo do slide do miolo",
       "body": "Conteudo completo do slide (ate 80 palavras)",
       "visual_note": "Sugestao visual breve"
     }

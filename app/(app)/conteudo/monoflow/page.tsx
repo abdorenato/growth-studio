@@ -980,7 +980,6 @@ function LinkedInCarrosselPdfView({
     if (slides.length >= 10) return; // LinkedIn permite até 10
     slides.push({
       index: slides.length,
-      tipo: "content",
       headline: "",
       body: "",
       visual_note: "",
@@ -1004,11 +1003,11 @@ function LinkedInCarrosselPdfView({
         documento aceita até 10 slides. Capa decide se o leitor abre.
       </p>
 
-      {/* Slides */}
+      {/* Slides — papel inferido por posicao: 1 = capa, ultimo = CTA */}
       <div className="space-y-3">
         {slides.map((s: any, i: number) => {
-          const isCover = s.tipo === "cover" || i === 0;
-          const isCta = s.tipo === "cta" || i === slides.length - 1;
+          const isCover = i === 0;
+          const isCta = i === slides.length - 1 && slides.length > 1;
           return (
             <div
               key={i}
@@ -1023,26 +1022,16 @@ function LinkedInCarrosselPdfView({
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-mono text-muted-foreground">
-                  Slide {i + 1} {isCover ? "(capa)" : isCta ? "(CTA)" : ""}
+                  Slide {i + 1}
+                  {isCover ? " — capa" : isCta ? " — CTA" : ""}
                 </span>
-                <select
-                  value={s.tipo || "content"}
-                  onChange={(e) => updateSlide(i, { tipo: e.target.value })}
-                  className="text-xs border rounded px-2 py-0.5 bg-background"
-                >
-                  <option value="cover">cover</option>
-                  <option value="content">content</option>
-                  <option value="data">data</option>
-                  <option value="quote">quote</option>
-                  <option value="cta">cta</option>
-                </select>
                 {slides.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeSlide(i)}
                     className="text-xs text-red-600 hover:underline"
                   >
-                    ✕
+                    ✕ remover
                   </button>
                 )}
               </div>
@@ -1257,8 +1246,10 @@ function formatCopyText(platform: Platform, data: any): string {
     case "linkedin_carrossel_pdf":
       lines.push("📑 LINKEDIN — CARROSSEL PDF");
       lines.push("");
-      (data.slides || []).forEach((s: any, i: number) => {
-        lines.push(`\n--- SLIDE ${i + 1} (${s.tipo || "content"}) ---`);
+      (data.slides || []).forEach((s: any, i: number, arr: any[]) => {
+        const role =
+          i === 0 ? "CAPA" : i === arr.length - 1 && arr.length > 1 ? "CTA" : "";
+        lines.push(`\n--- SLIDE ${i + 1}${role ? ` — ${role}` : ""} ---`);
         if (s.headline) lines.push(s.headline.toUpperCase());
         if (s.body) lines.push(s.body);
       });
