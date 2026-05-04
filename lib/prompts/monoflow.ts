@@ -255,6 +255,19 @@ REGRAS DE CONSTRUCAO DESTE POST:
 - CTA coerente com a editoria escolhida
 - Respeite a voz da marca (palavras a usar/evitar) e fronteiras do territorio
 
+🚨 PROIBIDO USAR MARKDOWN NO TEXTO DO POST:
+- NUNCA use **negrito** com asteriscos — LinkedIn NAO renderiza markdown,
+  os asteriscos aparecem LITERAIS pro leitor (fica feio)
+- NUNCA use *italico*, __underline__, > blockquote, # heading, ou listas
+  com - / *
+- Pra dar enfase, use:
+  • Quebra de linha estrategica isolando a frase importante
+  • CAIXA ALTA com moderacao (1-2x no post inteiro, palavras curtas)
+  • Aspas "frase" pra destacar fala/citacao importante
+- Pra listas, use quebras de linha + numero (1., 2., 3.) ou emoji (✓, →, •)
+  no inicio de cada linha
+- A intencao do markdown deve virar ESTRUTURA, nao formatacao
+
 Responda EXCLUSIVAMENTE com JSON nesse formato:
 {
   "post": "texto completo do post entre 1.250 e 3.000 caracteres, com quebras de linha como \\\\n",
