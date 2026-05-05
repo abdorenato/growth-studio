@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Sparkles, Copy, Loader2 } from "lucide-react";
+import { Sparkles, Copy, Loader2, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 
 import { useUserStore } from "@/hooks/use-user-store";
 import { ESTAGIOS, type Estagio } from "@/lib/estagios/constants";
@@ -38,6 +39,7 @@ type Roteiro = {
   titulo_interno?: string;
   hook?: Bloco;
   blocos?: Bloco[];
+  frase_memoravel?: string;
   cta?: Bloco;
   audio_sugestao?: string;
   legenda_post?: string;
@@ -68,6 +70,11 @@ export default function RoteirosPage() {
 
   const [loading, setLoading] = useState(false);
   const [roteiro, setRoteiro] = useState<Roteiro | null>(null);
+  // Id do roteiro persistido (depois do auto-save apos gerar). Quando existe,
+  // edicoes do usuario podem ser salvas via PATCH.
+  const [roteiroId, setRoteiroId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   // ── Bootstrap: ICPs + leitura de query string vinda de /ideias ───────────
   useEffect(() => {
@@ -100,6 +107,8 @@ export default function RoteirosPage() {
 
     setLoading(true);
     setRoteiro(null);
+    setRoteiroId(null);
+    setDirty(false);
     try {
       const resp = await fetch("/api/roteiros/generate", {
         method: "POST",
@@ -123,7 +132,8 @@ export default function RoteirosPage() {
         throw new Error(err.error || "Erro ao gerar roteiro");
       }
       const data = await resp.json();
-      setRoteiro(data.roteiro || null);
+      const novoRoteiro = data.roteiro || null;
+      setRoteiro(novoRoteiro);
       toast.success("Roteiro gerado!");
       // Scroll suave pra parte do roteiro
       setTimeout(() => {
@@ -132,10 +142,68 @@ export default function RoteirosPage() {
           block: "start",
         });
       }, 100);
+
+      // Auto-save em background — nao bloqueia UI nem mostra erro se falhar
+      if (novoRoteiro) {
+        try {
+          const saveResp = await fetch("/api/roteiros", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: user.id,
+              topic,
+              hook,
+              angle,
+              formato,
+              tom,
+              plataforma,
+              targetStage: targetStage || null,
+              editoriaId: editoriaId || null,
+              atrelarOferta,
+              data: novoRoteiro,
+            }),
+          });
+          if (saveResp.ok) {
+            const saveData = await saveResp.json();
+            if (saveData.roteiro?.id) setRoteiroId(saveData.roteiro.id);
+          }
+        } catch {
+          // silencioso — usuario ainda pode editar e salvar manualmente
+        }
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Atualiza um campo do roteiro localmente e marca como modificado
+  const handleUpdateRoteiro = (patch: Partial<Roteiro>) => {
+    setRoteiro((prev) => (prev ? { ...prev, ...patch } : prev));
+    setDirty(true);
+  };
+
+  // Persiste edicoes do usuario (PATCH no roteiro ja salvo)
+  const handleSaveEdits = async () => {
+    if (!roteiroId || !roteiro) {
+      toast.error("Roteiro ainda não foi salvo. Tente regerar.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const resp = await fetch(`/api/roteiros/${roteiroId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: roteiro }),
+      });
+      if (!resp.ok) throw new Error();
+      setDirty(false);
+      toast.success("Edições salvas!");
+    } catch {
+      toast.error("Erro ao salvar edições.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -363,6 +431,11 @@ export default function RoteirosPage() {
             roteiro={roteiro}
             onRegerar={handleGenerate}
             regenerating={loading}
+            onChange={handleUpdateRoteiro}
+            onSave={handleSaveEdits}
+            saving={saving}
+            dirty={dirty}
+            saved={Boolean(roteiroId)}
           />
         </div>
       )}
@@ -371,16 +444,40 @@ export default function RoteirosPage() {
 }
 
 // ─── Output do roteiro ──────────────────────────────────────────────────────
+// Editavel inline. Toda alteracao chama onChange (que marca dirty no parent).
+// Botao Salvar fica habilitado quando ha edicoes pendentes E o roteiro foi
+// persistido (ou seja, tem id no servidor).
 function RoteiroOutput({
   roteiro,
   onRegerar,
   regenerating,
+  onChange,
+  onSave,
+  saving,
+  dirty,
+  saved,
 }: {
   roteiro: Roteiro;
   onRegerar: () => void;
   regenerating: boolean;
+  onChange: (patch: Partial<Roteiro>) => void;
+  onSave: () => void;
+  saving: boolean;
+  dirty: boolean;
+  saved: boolean;
 }) {
   const fullText = formatRoteiroAsText(roteiro);
+
+  // Helpers pra editar campos aninhados
+  const updateHook = (patch: Partial<Bloco>) =>
+    onChange({ hook: { ...roteiro.hook, ...patch } });
+  const updateCta = (patch: Partial<Bloco>) =>
+    onChange({ cta: { ...roteiro.cta, ...patch } });
+  const updateBloco = (i: number, patch: Partial<Bloco>) => {
+    const arr = [...(roteiro.blocos || [])];
+    arr[i] = { ...arr[i], ...patch };
+    onChange({ blocos: arr });
+  };
 
   return (
     <Card>
@@ -394,14 +491,22 @@ function RoteiroOutput({
                   ~{roteiro.duracao_estimada_s}s
                 </span>
               )}
+              {dirty && (
+                <span className="text-[11px] font-normal px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                  edições não salvas
+                </span>
+              )}
             </h2>
             {roteiro.titulo_interno && (
               <p className="text-xs text-muted-foreground mt-0.5">
                 {roteiro.titulo_interno}
               </p>
             )}
+            <p className="text-[11px] text-muted-foreground mt-1">
+              ✏️ Edite qualquer campo abaixo. Use Salvar pra persistir as alterações.
+            </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               size="sm"
               variant="outline"
@@ -420,13 +525,26 @@ function RoteiroOutput({
             >
               {regenerating ? "..." : "Regerar"}
             </Button>
+            {saved && (
+              <Button size="sm" onClick={onSave} disabled={!dirty || saving}>
+                <Save className="mr-2 h-4 w-4" />
+                {saving ? "Salvando..." : "Salvar edições"}
+              </Button>
+            )}
           </div>
         </div>
 
         <Separator />
 
         {/* HOOK */}
-        {roteiro.hook && <BlocoCard label="🎣 Hook" bloco={roteiro.hook} highlight />}
+        {roteiro.hook && (
+          <BlocoCard
+            label="🎣 Hook"
+            bloco={roteiro.hook}
+            highlight
+            onChange={updateHook}
+          />
+        )}
 
         {/* BLOCOS */}
         {Array.isArray(roteiro.blocos) &&
@@ -435,62 +553,102 @@ function RoteiroOutput({
               key={i}
               label={`${i + 1}. ${b.tipo ? capitalize(b.tipo) : "Bloco"}`}
               bloco={b}
+              onChange={(patch) => updateBloco(i, patch)}
             />
           ))}
 
+        {/* FRASE MEMORÁVEL — campo editavel separado */}
+        <div
+          className={
+            "rounded-md border p-3 space-y-2 border-yellow-300/50 bg-yellow-50/50 dark:bg-yellow-950/20"
+          }
+        >
+          <span className="text-xs font-bold uppercase tracking-wider">
+            💎 Frase memorável
+          </span>
+          <Textarea
+            value={roteiro.frase_memoravel || ""}
+            onChange={(e) => onChange({ frase_memoravel: e.target.value })}
+            placeholder="Frase de impacto antes do CTA. Ex: 'Parecia crescimento. Era vazamento.'"
+            rows={2}
+            className="bg-background"
+          />
+        </div>
+
         {/* CTA */}
-        {roteiro.cta && <BlocoCard label="📣 CTA" bloco={roteiro.cta} highlight />}
+        {roteiro.cta && (
+          <BlocoCard
+            label="📣 CTA"
+            bloco={roteiro.cta}
+            highlight
+            onChange={updateCta}
+          />
+        )}
 
         <Separator />
 
         {/* META */}
-        {roteiro.audio_sugestao && (
-          <div className="text-sm">
-            <span className="font-medium">🎵 Áudio: </span>
-            <span className="text-muted-foreground">{roteiro.audio_sugestao}</span>
-          </div>
-        )}
+        <div className="space-y-1.5">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+            🎵 Áudio sugerido
+          </Label>
+          <Input
+            value={roteiro.audio_sugestao || ""}
+            onChange={(e) => onChange({ audio_sugestao: e.target.value })}
+            placeholder="Tipo de áudio ou trend"
+          />
+        </div>
 
-        {roteiro.legenda_post && (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                Legenda do post
-              </Label>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  navigator.clipboard.writeText(roteiro.legenda_post || "");
-                  toast.success("Legenda copiada!");
-                }}
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
-            </div>
-            <p className="text-sm whitespace-pre-wrap rounded-md border bg-muted/30 p-3">
-              {roteiro.legenda_post}
-            </p>
-          </div>
-        )}
-
-        {Array.isArray(roteiro.hashtags) && roteiro.hashtags.length > 0 && (
-          <div className="space-y-1.5">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-              Hashtags
+              Legenda do post
             </Label>
-            <div className="flex flex-wrap gap-1.5">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                navigator.clipboard.writeText(roteiro.legenda_post || "");
+                toast.success("Legenda copiada!");
+              }}
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
+          <Textarea
+            value={roteiro.legenda_post || ""}
+            onChange={(e) => onChange({ legenda_post: e.target.value })}
+            rows={5}
+            placeholder="Legenda completa pra publicar."
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+            Hashtags (separadas por espaço)
+          </Label>
+          <Input
+            value={(roteiro.hashtags || []).join(" ")}
+            onChange={(e) =>
+              onChange({
+                hashtags: e.target.value
+                  .split(/\s+/)
+                  .map((h) => h.trim())
+                  .filter(Boolean),
+              })
+            }
+            placeholder="#tag1 #tag2 #tag3"
+          />
+          {Array.isArray(roteiro.hashtags) && roteiro.hashtags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
               {roteiro.hashtags.map((h, i) => (
-                <span
-                  key={i}
-                  className="text-xs bg-secondary px-2 py-1 rounded"
-                >
+                <span key={i} className="text-xs bg-secondary px-2 py-1 rounded">
                   {h}
                 </span>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -500,10 +658,12 @@ function BlocoCard({
   label,
   bloco,
   highlight,
+  onChange,
 }: {
   label: string;
   bloco: Bloco;
   highlight?: boolean;
+  onChange: (patch: Partial<Bloco>) => void;
 }) {
   return (
     <div
@@ -515,35 +675,51 @@ function BlocoCard({
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
         {bloco.duracao_s != null && (
-          <span className="text-[11px] text-muted-foreground">
-            {bloco.duracao_s}s
-          </span>
+          <Input
+            type="number"
+            value={bloco.duracao_s}
+            onChange={(e) =>
+              onChange({ duracao_s: Number(e.target.value) || 0 })
+            }
+            className="w-16 h-6 text-[11px] px-1 text-right"
+          />
         )}
       </div>
-      {bloco.fala && (
-        <div>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Fala
-          </span>
-          <p className="text-sm mt-0.5">{bloco.fala}</p>
-        </div>
-      )}
-      {bloco.visual && (
-        <div>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Visual / B-roll
-          </span>
-          <p className="text-sm mt-0.5 text-muted-foreground italic">{bloco.visual}</p>
-        </div>
-      )}
-      {bloco.texto_tela && (
-        <div>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Texto na tela
-          </span>
-          <p className="text-sm mt-0.5 font-medium">{bloco.texto_tela}</p>
-        </div>
-      )}
+      <div className="space-y-1">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          Fala
+        </span>
+        <Textarea
+          value={bloco.fala || ""}
+          onChange={(e) => onChange({ fala: e.target.value })}
+          placeholder="O que falar"
+          rows={2}
+          className="bg-background"
+        />
+      </div>
+      <div className="space-y-1">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          Visual / B-roll
+        </span>
+        <Textarea
+          value={bloco.visual || ""}
+          onChange={(e) => onChange({ visual: e.target.value })}
+          placeholder="O que aparece na tela"
+          rows={2}
+          className="bg-background italic"
+        />
+      </div>
+      <div className="space-y-1">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          Texto na tela (overlay)
+        </span>
+        <Input
+          value={bloco.texto_tela || ""}
+          onChange={(e) => onChange({ texto_tela: e.target.value })}
+          placeholder="Overlay curto (3-6 palavras)"
+          className="bg-background font-medium"
+        />
+      </div>
     </div>
   );
 }
@@ -614,6 +790,11 @@ function formatRoteiroAsText(r: Roteiro): string {
     r.blocos.forEach((b, i) =>
       renderBloco(`${i + 1}. ${b.tipo ? b.tipo.toUpperCase() : "BLOCO"}`, b)
     );
+  }
+  if (r.frase_memoravel) {
+    lines.push(`## FRASE MEMORÁVEL`);
+    lines.push(r.frase_memoravel);
+    lines.push("");
   }
   renderBloco("CTA", r.cta);
 
