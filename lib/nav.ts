@@ -87,6 +87,13 @@ export function buildNav(progress: Partial<Progress>): NavGroup[] {
           href: "/conteudo/monoflow",
           locked: !progress.icp,
         },
+        {
+          key: "roteiros",
+          title: "Roteiros de Milhões",
+          icon: "🎬",
+          href: "/conteudo/roteiros",
+          locked: !progress.icp,
+        },
       ],
     },
     {

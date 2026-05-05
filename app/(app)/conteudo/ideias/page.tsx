@@ -197,9 +197,9 @@ export default function IdeiasPage() {
     }
   };
 
-  // ── Usar (vai pro Monoflow) ─────
-  const handleUseIdea = (idea: Ideia) => {
-    const params = new URLSearchParams({
+  // ── Usar (vai pro Monoflow OU pra Roteiros) ─────
+  const buildIdeaParams = (idea: Ideia) =>
+    new URLSearchParams({
       topic: idea.topic || "",
       hook: idea.hook || "",
       angle: idea.angle || "",
@@ -207,8 +207,15 @@ export default function IdeiasPage() {
       editoriaId: editoriaId || "",
       stage: idea.target_stage || "",
     });
+
+  const handleUseIdea = (idea: Ideia) => {
     toast.success(`Ideia selecionada: "${idea.topic}"`);
-    router.push(`/conteudo/monoflow?${params.toString()}`);
+    router.push(`/conteudo/monoflow?${buildIdeaParams(idea).toString()}`);
+  };
+
+  const handleRoteiroFromIdea = (idea: Ideia) => {
+    toast.success(`Indo pro roteiro: "${idea.topic}"`);
+    router.push(`/conteudo/roteiros?${buildIdeaParams(idea).toString()}`);
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -509,7 +516,15 @@ export default function IdeiasPage() {
                     </div>
                     <div className="flex flex-col gap-2 flex-shrink-0">
                       <Button size="sm" onClick={() => handleUseIdea(idea)}>
-                        Usar <ArrowRight className="ml-1 h-3 w-3" />
+                        Monoflow <ArrowRight className="ml-1 h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleRoteiroFromIdea(idea)}
+                        title="Gerar roteiro de vídeo (Reels/TikTok)"
+                      >
+                        🎬 Roteiro
                       </Button>
                       <Button
                         size="sm"
