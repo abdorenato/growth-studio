@@ -26,15 +26,66 @@ type Platform =
   | "linkedin_carrossel_pdf"
   | "tiktok";
 
-const PLATFORMS: { key: Platform; label: string; icon: string }[] = [
-  { key: "reels", label: "Reels", icon: "📹" },
-  { key: "post", label: "Post", icon: "📸" },
-  { key: "carousel", label: "Carrossel", icon: "🎠" },
-  { key: "stories", label: "Stories", icon: "📱" },
-  { key: "linkedin", label: "LinkedIn (post)", icon: "💼" },
-  { key: "linkedin_carrossel_pdf", label: "LinkedIn (carrossel PDF)", icon: "📑" },
-  { key: "tiktok", label: "TikTok", icon: "🎵" },
+type FormatDef = { key: Platform; label: string; icon: string };
+
+type PlatformGroup = {
+  key: "instagram" | "linkedin" | "tiktok";
+  label: string;
+  icon: string;
+  formats: FormatDef[];
+};
+
+// Hierarquia: rede social > formatos dentro dela.
+// Cada formato eh uma "Platform key" no banco (sem mudar schema).
+const PLATFORM_GROUPS: PlatformGroup[] = [
+  {
+    key: "instagram",
+    label: "Instagram",
+    icon: "📷",
+    formats: [
+      { key: "reels", label: "Reels", icon: "📹" },
+      { key: "carousel", label: "Carrossel", icon: "🎠" },
+      { key: "post", label: "Post", icon: "📸" },
+      { key: "stories", label: "Stories", icon: "📱" },
+    ],
+  },
+  {
+    key: "linkedin",
+    label: "LinkedIn",
+    icon: "💼",
+    formats: [
+      { key: "linkedin", label: "Post", icon: "💼" },
+      { key: "linkedin_carrossel_pdf", label: "Carrossel PDF", icon: "📑" },
+    ],
+  },
+  {
+    key: "tiktok",
+    label: "TikTok",
+    icon: "🎵",
+    formats: [{ key: "tiktok", label: "Vídeo", icon: "🎵" }],
+  },
 ];
+
+// Lista flat derivada (mantem compat com codigo que itera tudo)
+const PLATFORMS: FormatDef[] = PLATFORM_GROUPS.flatMap((g) => g.formats);
+
+// Mapa pra achar a qual grupo cada formato pertence — usado pra prefixar tab
+// label quando o nome do formato sozinho seria ambiguo (ex.: "Post" existe
+// no Instagram e no LinkedIn).
+const PLATFORM_TO_GROUP: Record<Platform, PlatformGroup> = PLATFORM_GROUPS.reduce(
+  (acc, g) => {
+    g.formats.forEach((f) => {
+      acc[f.key] = g;
+    });
+    return acc;
+  },
+  {} as Record<Platform, PlatformGroup>
+);
+
+function tabLabel(p: FormatDef): string {
+  const group = PLATFORM_TO_GROUP[p.key];
+  return `${group.icon} ${group.label} · ${p.label}`;
+}
 
 export default function MonoflowPage() {
   const searchParams = useSearchParams();
@@ -140,11 +191,75 @@ export default function MonoflowPage() {
     }
   };
 
+  // Gera UM formato (botao individual). Faz fetch isolado, persiste, atualiza state.
+  const handleGenerateOne = async (platformKey: Platform) => {
+    if (!motherText.trim()) {
+      toast.error("Gere o texto-mãe primeiro.");
+      return;
+    }
+
+    setGenerating((prev) => ({ ...prev, [platformKey]: true }));
+
+    try {
+      const resp = await fetch("/api/monoflow/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          icpId,
+          atrelarOferta,
+          editoriaId: editoriaId || null,
+          targetStage: targetStage || null,
+          motherText,
+          platform: platformKey,
+          numSlides: platformKey === "carousel" ? 5 : undefined,
+        }),
+      });
+      if (!resp.ok) throw new Error();
+      const data = await resp.json();
+
+      setContents((prev) => ({ ...prev, [platformKey]: data }));
+      setActivePlatform(platformKey);
+      updateProgress("conteudos", true);
+
+      // Persiste no Supabase em background
+      try {
+        const saveResp = await fetch("/api/conteudos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.id,
+            items: [{ platform: platformKey, data }],
+          }),
+        });
+        if (saveResp.ok) {
+          const saveData = await saveResp.json();
+          const newId = saveData.items?.[0]?.id;
+          if (newId) {
+            setContentIds((prev) => ({ ...prev, [platformKey]: newId }));
+          }
+        }
+      } catch {
+        // nao bloqueia
+      }
+    } catch {
+      toast.error(`Erro ao gerar ${platformKey}`);
+    } finally {
+      setGenerating((prev) => ({ ...prev, [platformKey]: false }));
+    }
+  };
+
   const handleGenerateAll = async () => {
     if (!motherText.trim()) return toast.error("Gere o texto-mãe primeiro.");
 
-    const active = PLATFORMS.filter((p) => selectedPlatforms[p.key]);
-    if (active.length === 0) return toast.error("Selecione ao menos uma plataforma.");
+    // So gera o que esta marcado E ainda nao foi gerado (idempotente)
+    const active = PLATFORMS.filter(
+      (p) => selectedPlatforms[p.key] && !contents[p.key]
+    );
+    if (active.length === 0) {
+      toast.info("Tudo que está marcado já foi gerado.");
+      return;
+    }
 
     // Gera em paralelo
     setGenerating(
@@ -376,32 +491,53 @@ export default function MonoflowPage() {
 
       {/* ETAPA 3: PLATAFORMAS */}
       <Card>
-        <CardContent className="p-6 space-y-4">
-          <h2 className="text-lg font-semibold">3️⃣ Plataformas</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {PLATFORMS.map((p) => (
-              <button
-                key={p.key}
-                onClick={() => togglePlatform(p.key)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition ${
-                  selectedPlatforms[p.key]
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background hover:bg-accent"
-                }`}
-              >
-                <span>{p.icon}</span>
-                <span>{p.label}</span>
-              </button>
-            ))}
+        <CardContent className="p-6 space-y-5">
+          <div>
+            <h2 className="text-lg font-semibold">3️⃣ Plataformas e formatos</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Marca o que quer gerar. Pode gerar individualmente ou tudo de uma vez.
+            </p>
           </div>
+
+          {PLATFORM_GROUPS.map((group) => (
+            <PlatformGroupBlock
+              key={group.key}
+              group={group}
+              selectedPlatforms={selectedPlatforms}
+              generating={generating}
+              contents={contents}
+              motherTextReady={Boolean(motherText)}
+              onToggle={togglePlatform}
+              onToggleAll={(checked) => {
+                setSelectedPlatforms((prev) => {
+                  const next = { ...prev };
+                  group.formats.forEach((f) => {
+                    next[f.key] = checked;
+                  });
+                  return next;
+                });
+              }}
+              onGenerate={handleGenerateOne}
+              onView={(key) => setActivePlatform(key)}
+            />
+          ))}
+
+          {/* Batch convenience */}
           <Button
             onClick={handleGenerateAll}
-            disabled={!motherText || Object.values(generating).some(Boolean)}
+            disabled={
+              !motherText ||
+              Object.values(generating).some(Boolean) ||
+              !PLATFORMS.some((p) => selectedPlatforms[p.key] && !contents[p.key])
+            }
             className="w-full"
             size="lg"
+            variant="outline"
           >
             <Sparkles className="mr-2 h-4 w-4" />
-            {Object.values(generating).some(Boolean) ? "Gerando..." : "Gerar tudo"}
+            {Object.values(generating).some(Boolean)
+              ? "Gerando..."
+              : "Gerar todos os marcados ainda não gerados"}
           </Button>
         </CardContent>
       </Card>
@@ -414,7 +550,7 @@ export default function MonoflowPage() {
             <TabsList className="w-full flex-wrap h-auto">
               {PLATFORMS.filter((p) => contents[p.key]).map((p) => (
                 <TabsTrigger key={p.key} value={p.key}>
-                  {p.icon} {p.label}
+                  {tabLabel(p)}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -499,6 +635,165 @@ function PlatformCard({
         {platform === "tiktok" && <TiktokView data={data} onChange={onChange} />}
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Bloco visual de uma plataforma com seus formatos ────────────────
+function PlatformGroupBlock({
+  group,
+  selectedPlatforms,
+  generating,
+  contents,
+  motherTextReady,
+  onToggle,
+  onToggleAll,
+  onGenerate,
+  onView,
+}: {
+  group: PlatformGroup;
+  selectedPlatforms: Record<Platform, boolean>;
+  generating: Record<Platform, boolean>;
+  contents: Record<string, any>;
+  motherTextReady: boolean;
+  onToggle: (key: Platform) => void;
+  onToggleAll: (checked: boolean) => void;
+  onGenerate: (key: Platform) => void;
+  onView: (key: Platform) => void;
+}) {
+  const allChecked = group.formats.every((f) => selectedPlatforms[f.key]);
+  const someChecked = group.formats.some((f) => selectedPlatforms[f.key]);
+  const checkedCount = group.formats.filter((f) => selectedPlatforms[f.key]).length;
+
+  return (
+    <div className="border rounded-lg p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xl">{group.icon}</span>
+          <h3 className="font-semibold">{group.label}</h3>
+          <span className="text-xs text-muted-foreground">
+            {checkedCount}/{group.formats.length} marcado{checkedCount !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onToggleAll(!allChecked)}
+          className="text-xs text-primary hover:underline"
+        >
+          {allChecked
+            ? "desmarcar todos"
+            : someChecked
+            ? "marcar todos"
+            : "marcar todos"}
+        </button>
+      </div>
+
+      <div className="space-y-1.5">
+        {group.formats.map((f) => (
+          <FormatRow
+            key={f.key}
+            format={f}
+            checked={selectedPlatforms[f.key]}
+            isGenerating={generating[f.key] || false}
+            isGenerated={Boolean(contents[f.key])}
+            motherTextReady={motherTextReady}
+            onToggle={() => onToggle(f.key)}
+            onGenerate={() => onGenerate(f.key)}
+            onView={() => onView(f.key)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Linha de um formato ─────────────────────────────────────────────
+function FormatRow({
+  format,
+  checked,
+  isGenerating,
+  isGenerated,
+  motherTextReady,
+  onToggle,
+  onGenerate,
+  onView,
+}: {
+  format: FormatDef;
+  checked: boolean;
+  isGenerating: boolean;
+  isGenerated: boolean;
+  motherTextReady: boolean;
+  onToggle: () => void;
+  onGenerate: () => void;
+  onView: () => void;
+}) {
+  return (
+    <div
+      className={
+        "flex items-center gap-3 p-2 rounded transition-colors " +
+        (checked ? "bg-muted/50" : "hover:bg-muted/30")
+      }
+    >
+      {/* Checkbox */}
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onToggle}
+        className="h-4 w-4 cursor-pointer flex-shrink-0"
+      />
+
+      {/* Icon + label */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex items-center gap-2 flex-1 min-w-0 text-left text-sm cursor-pointer"
+      >
+        <span>{format.icon}</span>
+        <span className={checked ? "font-medium" : "text-muted-foreground"}>
+          {format.label}
+        </span>
+      </button>
+
+      {/* Status badge */}
+      {isGenerating ? (
+        <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+          ⏳ gerando
+        </span>
+      ) : isGenerated ? (
+        <span className="text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+          ✓ pronto
+        </span>
+      ) : (
+        <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+          —
+        </span>
+      )}
+
+      {/* Botoes acao */}
+      <div className="flex gap-1 flex-shrink-0">
+        {isGenerated && (
+          <button
+            type="button"
+            onClick={onView}
+            className="text-xs px-2 py-1 rounded border hover:bg-accent"
+          >
+            Ver
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onGenerate}
+          disabled={isGenerating || !motherTextReady}
+          className={
+            "text-xs px-2 py-1 rounded transition " +
+            (isGenerated
+              ? "border hover:bg-accent"
+              : "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50")
+          }
+        >
+          {isGenerating ? "..." : isGenerated ? "Regerar" : "Gerar"}
+        </button>
+      </div>
+    </div>
   );
 }
 
