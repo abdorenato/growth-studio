@@ -22,29 +22,12 @@ import {
   type TomKey,
   type PlataformaKey,
 } from "@/lib/prompts/roteiros-video";
+import type { Bloco, RoteiroValidated } from "@/lib/roteiros/types";
 
-type Bloco = {
-  tipo?: string;
-  fala?: string;
-  visual?: string;
-  texto_tela?: string;
-  duracao_s?: number;
-};
-
-type Roteiro = {
-  formato?: FormatoKey;
-  tom?: TomKey;
-  plataforma?: PlataformaKey;
-  duracao_estimada_s?: number;
-  titulo_interno?: string;
-  hook?: Bloco;
-  blocos?: Bloco[];
-  frase_memoravel?: string;
-  cta?: Bloco;
-  audio_sugestao?: string;
-  legenda_post?: string;
-  hashtags?: string[];
-};
+// O endpoint sempre retorna RoteiroValidated (com word_count, duracao
+// calculada e warnings). Aliasamos pra "Roteiro" pra manter resto do
+// arquivo legivel.
+type Roteiro = RoteiroValidated;
 
 const FORMATO_KEYS = Object.keys(FORMATOS) as FormatoKey[];
 const TOM_KEYS = Object.keys(TONS) as TomKey[];
@@ -484,13 +467,8 @@ function RoteiroOutput({
       <CardContent className="p-6 space-y-5">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
+            <h2 className="text-lg font-semibold flex items-center gap-2 flex-wrap">
               ✅ Roteiro pronto
-              {roteiro.duracao_estimada_s && (
-                <span className="text-xs font-normal text-muted-foreground">
-                  ~{roteiro.duracao_estimada_s}s
-                </span>
-              )}
               {dirty && (
                 <span className="text-[11px] font-normal px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                   edições não salvas
@@ -502,6 +480,19 @@ function RoteiroOutput({
                 {roteiro.titulo_interno}
               </p>
             )}
+            {/* Métricas calculadas pelo post-processador */}
+            <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
+              {roteiro.duracao_calculada_s != null && (
+                <span>
+                  ⏱️ <b>~{roteiro.duracao_calculada_s}s</b> falados
+                </span>
+              )}
+              {roteiro.word_count != null && (
+                <span>
+                  📝 <b>{roteiro.word_count}</b> palavras
+                </span>
+              )}
+            </div>
             <p className="text-[11px] text-muted-foreground mt-1">
               ✏️ Edite qualquer campo abaixo. Use Salvar pra persistir as alterações.
             </p>
@@ -535,6 +526,20 @@ function RoteiroOutput({
         </div>
 
         <Separator />
+
+        {/* WARNINGS do post-processador (se houver) */}
+        {Array.isArray(roteiro.warnings) && roteiro.warnings.length > 0 && (
+          <div className="rounded-md border border-amber-300/50 bg-amber-50/60 dark:bg-amber-950/20 p-3 space-y-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
+              ⚠️ Observações do validador
+            </p>
+            <ul className="text-xs space-y-0.5 list-disc list-inside text-amber-900/80 dark:text-amber-200/80">
+              {roteiro.warnings.map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* HOOK */}
         {roteiro.hook && (

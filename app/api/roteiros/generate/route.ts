@@ -11,6 +11,10 @@ import {
   type TomKey,
   type PlataformaKey,
 } from "@/lib/prompts/roteiros-video";
+import { getScriptLimits } from "@/lib/roteiros/limits";
+import { postProcessRoteiro } from "@/lib/roteiros/post-process";
+import { reviewRoteiro, REVIEWER_ENABLED } from "@/lib/roteiros/reviewer";
+import type { Roteiro } from "@/lib/roteiros/types";
 
 // 1 ideia → 1 formato → 1 tom → 1 plataforma → 1 roteiro.
 // Sem batch. Sem 5 variacoes. Decisao ativa do usuario.
@@ -89,7 +93,30 @@ export async function POST(req: Request) {
       userId,
     });
 
-    const roteiro = parseJSON(text) as Record<string, unknown>;
+    const roteiroRaw = parseJSON(text) as Roteiro;
+
+    // ─── Pipeline de pos-processamento (deterministico) ───────────────
+    // Aplica em ordem:
+    //  1. sanitizeClaims  → tira numeros inventados (regex)
+    //  2. enforceSingleCTA → mantem 1 verbo imperativo
+    //  3. enforceScriptLimits → trunca CTA, gera warnings de excesso
+    //  4. metricas (word_count, duracao_calculada_s)
+    const limits = getScriptLimits(plataforma, duracaoSegundos);
+    const briefing = { topic, hook, angle };
+    const roteiro = postProcessRoteiro(roteiroRaw, { briefing, limits });
+
+    // ─── Revisor LLM (opt-in via env ENABLE_SCRIPT_REVIEWER=true) ─────
+    // Quando ligado, faz uma 2a chamada Claude pra julgar qualidade
+    // subjetiva. Hoje desativado — esqueleto pronto pra ligar.
+    if (REVIEWER_ENABLED) {
+      const review = await reviewRoteiro(roteiro, { userId });
+      if (review && !review.passed) {
+        roteiro.warnings.push(
+          `Revisor sinalizou: ${review.failures.join(", ")}. ${review.notes}`
+        );
+      }
+    }
+
     return NextResponse.json({ roteiro });
   } catch (err) {
     console.error("Roteiros generate error:", err);
