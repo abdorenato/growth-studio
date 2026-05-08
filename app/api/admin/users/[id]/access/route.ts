@@ -113,15 +113,25 @@ export async function POST(
       }>();
 
     if (error) {
-      console.error("Update access error:", error);
-      return NextResponse.json({ error: "Falha" }, { status: 500 });
+      // Loga o objeto completo (Vercel logs) e devolve detalhes pra UI
+      console.error("Update access error:", JSON.stringify(error));
+      return NextResponse.json(
+        {
+          error: error.message || "Falha ao atualizar",
+          details: error,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ user: data });
   } catch (err) {
-    console.error(err);
+    console.error("Access endpoint exception:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Erro" },
+      {
+        error: err instanceof Error ? err.message : "Erro desconhecido",
+        stack: err instanceof Error ? err.stack : undefined,
+      },
       { status: 500 }
     );
   }
