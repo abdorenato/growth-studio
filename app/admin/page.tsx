@@ -172,6 +172,42 @@ export default function AdminPage() {
     }
   };
 
+  // ─── APAGAR USUÁRIO (irreversível) ─────────────────────────────────
+  // Confirmação dupla: confirm() + prompt() pedindo o email pra evitar
+  // delete acidental. Endpoint vai recusar se for default admin ou
+  // se for o proprio admin tentando se auto-apagar.
+  const deleteUser = async (userId: string, email: string) => {
+    if (!user) return;
+    const confirma1 = confirm(
+      `⚠️ APAGAR ${email}?\n\nIsso é IRREVERSÍVEL e remove a conta do usuário ` +
+        `(e tudo que tiver cascade configurado: ICPs, conteúdos, ideias, etc).\n\n` +
+        `OK pra prosseguir, Cancelar pra abortar.`
+    );
+    if (!confirma1) return;
+
+    const confirma2 = prompt(
+      `Pra confirmar de verdade, digite o email do usuário:\n\n${email}`
+    );
+    if (!confirma2 || confirma2.toLowerCase().trim() !== email.toLowerCase().trim()) {
+      toast.error("Email não confere — operação cancelada.");
+      return;
+    }
+
+    try {
+      const resp = await fetch(`/api/admin/users/${userId}`, {
+        method: "DELETE",
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data.error || "Falha ao apagar");
+      }
+      toast.success(`${email} apagado.`);
+      fetchStats();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    }
+  };
+
   // ─── PROMOVER / REBAIXAR ADMIN ─────────────────────────────────────
   const toggleAdmin = async (
     userId: string,
@@ -642,6 +678,18 @@ export default function AdminPage() {
                                 className="text-xs h-7 px-2 text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/30"
                               >
                                 ⚙️ Promover admin
+                              </Button>
+                            )}
+                            {/* Apagar — só aparece pra não-admins (proteção extra) */}
+                            {!isAdmin && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => deleteUser(u.id, u.email)}
+                                className="text-xs h-7 px-2 text-red-700 hover:bg-red-100 dark:hover:bg-red-950/40"
+                                title="Apagar usuário (irreversível)"
+                              >
+                                🗑️
                               </Button>
                             )}
                           </div>
