@@ -93,9 +93,10 @@ export async function POST(
       );
     }
 
-    const patch: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    };
+    // patch montado dinamicamente — so com colunas que de fato existem
+    // em users. updated_at nao existe nessa tabela (nunca foi criada via
+    // migration). Migration 029 vai adicionar pra rastreio futuro.
+    const patch: Record<string, unknown> = {};
     if (body.access_status !== undefined) patch.access_status = body.access_status;
     if (body.is_admin !== undefined) patch.is_admin = body.is_admin;
 
