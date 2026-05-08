@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getDefaultAdminEmails, requireAdmin } from "@/lib/admin/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/admin";
 
 // POST /api/admin/users/[id]/block
 // Body: { action: 'block' | 'unblock' }
@@ -30,7 +30,8 @@ export async function POST(
       );
     }
 
-    const supabase = await createClient();
+    // Service client (bypassa RLS). Auth ja validada via requireAdmin acima.
+    const supabase = createServiceClient();
 
     // Busca o user pra validar
     const { data: target } = await supabase

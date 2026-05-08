@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getDefaultAdminEmails, requireAdmin } from "@/lib/admin/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/admin";
 
 // POST /api/admin/users/bulk-block
 //
@@ -44,7 +44,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "mode inválido" }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    // Service client (bypassa RLS). Auth ja validada via requireAdmin acima.
+    const supabase = createServiceClient();
     // Pega lista de emails admin: defaults + quem está com is_admin=true no banco
     const { data: dbAdmins } = await supabase
       .from("users")

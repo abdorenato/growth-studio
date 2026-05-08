@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getDefaultAdminEmails, requireAdmin } from "@/lib/admin/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/admin";
 
 // POST /api/admin/users/[id]/access
 // Body: { access_status?: 'pending'|'approved'|'blocked', is_admin?: boolean }
@@ -51,7 +51,9 @@ export async function POST(
       );
     }
 
-    const supabase = await createClient();
+    // Service client (bypassa RLS). Auth ja foi validada via requireAdmin
+    // (cookie do admin) acima — aqui so executa mutacao com privilegio.
+    const supabase = createServiceClient();
 
     // Busca o target pra validar protecoes
     const { data: target } = await supabase

@@ -52,7 +52,7 @@ export async function GET(req: Request) {
   // 3a. Tenta achar user existente pelo email (legacy lead OU re-login)
   const { data: existing } = await supabase
     .from("users")
-    .select("id, access_status, auth_user_id")
+    .select("id, access_status, auth_user_id, blocked_at")
     .eq("email", email)
     .maybeSingle();
 
@@ -67,6 +67,23 @@ export async function GET(req: Request) {
     };
     // So preenche se atual ta vazio (nao sobrescreve dados do user)
     if (avatarUrl) patch.avatar_url = avatarUrl;
+
+    // ─── FIX: legacy lead bloqueado por backfill da migration 026 ───
+    // Cenario: lead entrou via waitlist/chat antes do auth Google existir.
+    // Tinha blocked_at setado por algum motivo (ou rotina antiga). Migration
+    // 026 fez `update users set access_status='blocked' where blocked_at
+    // is not null` — ele virou blocked SEM admin nunca ter decidido isso.
+    //
+    // Se for o PRIMEIRO login Google (auth_user_id ainda null), trata como
+    // novo signup: reseta pra 'pending' pra entrar na lista de aprovacao.
+    //
+    // Re-logins (auth_user_id ja seteado) preservam access_status — nao
+    // queremos ressuscitar quem o admin bloqueou de verdade.
+    const isFirstGoogleLogin = !existing.auth_user_id;
+    if (isFirstGoogleLogin && existing.access_status === "blocked") {
+      patch.access_status = "pending";
+      patch.blocked_at = null;
+    }
 
     await supabase.from("users").update(patch).eq("id", existing.id);
   } else {
