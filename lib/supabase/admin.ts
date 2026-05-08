@@ -20,9 +20,10 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // Tipamos como `SupabaseClient` generico (sem schema tipado do projeto) pra
 // que .from("qualquer_tabela") aceite e .select()/.update() nao virem `never`.
-// O projeto nao usa types gerados do supabase, entao essa eh a forma certa
-// de manter os endpoints admin compilando sem cast inline em cada query.
-type AnySupabase = SupabaseClient<unknown, string, unknown>;
+// Usamos `any` no Database/Schema porque o projeto nao usa types gerados do
+// Supabase — sem isso, .update({...}) recebe parametro `never`.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySupabase = SupabaseClient<any, any, any>;
 
 let _client: AnySupabase | null = null;
 
