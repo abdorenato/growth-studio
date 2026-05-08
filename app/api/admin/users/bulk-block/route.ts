@@ -50,11 +50,12 @@ export async function POST(req: Request) {
     const { data: dbAdmins } = await supabase
       .from("users")
       .select("email")
-      .eq("is_admin", true);
+      .eq("is_admin", true)
+      .returns<Array<{ email: string }>>();
     const adminEmails = Array.from(
       new Set([
         ...getDefaultAdminEmails(),
-        ...((dbAdmins || []).map((a: { email: string }) => a.email.toLowerCase())),
+        ...((dbAdmins || []).map((a) => a.email.toLowerCase())),
       ])
     );
 
@@ -63,7 +64,8 @@ export async function POST(req: Request) {
       const { data: candidates } = await supabase
         .from("users")
         .select("id, email")
-        .eq("access_status", "blocked");
+        .eq("access_status", "blocked")
+        .returns<Array<{ id: string; email: string }>>();
       const ids = (candidates || []).map((u) => u.id);
 
       if (mode === "preview") {
@@ -104,18 +106,26 @@ export async function POST(req: Request) {
     }
     // scope === 'all' → sem filtro adicional (BLOQUEIA TODOS, inclusive admin!)
 
-    const { data: candidates, error: selErr } = await q;
+    const { data: candidates, error: selErr } = await q.returns<
+      Array<{ id: string; email: string }>
+    >();
     if (selErr) throw new Error(selErr.message);
 
     let filtered = candidates || [];
 
     // Pra 'inactive' filtra ainda mais: apenas quem nao tem voz nem ICP
     if (scope === "inactive") {
-      const { data: vozes } = await supabase.from("vozes").select("user_id");
-      const { data: icps } = await supabase.from("icps").select("user_id");
+      const { data: vozes } = await supabase
+        .from("vozes")
+        .select("user_id")
+        .returns<Array<{ user_id: string }>>();
+      const { data: icps } = await supabase
+        .from("icps")
+        .select("user_id")
+        .returns<Array<{ user_id: string }>>();
       const usuariosAtivos = new Set([
-        ...(vozes || []).map((v: { user_id: string }) => v.user_id),
-        ...(icps || []).map((i: { user_id: string }) => i.user_id),
+        ...(vozes || []).map((v) => v.user_id),
+        ...(icps || []).map((i) => i.user_id),
       ]);
       filtered = filtered.filter((u) => !usuariosAtivos.has(u.id));
     }

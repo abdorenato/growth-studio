@@ -60,7 +60,7 @@ export async function POST(
       .from("users")
       .select("id, email, is_admin")
       .eq("id", id)
-      .maybeSingle();
+      .maybeSingle<{ id: string; email: string; is_admin: boolean }>();
 
     if (!target) {
       return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
@@ -104,7 +104,13 @@ export async function POST(
       .update(patch)
       .eq("id", id)
       .select("id, email, name, access_status, is_admin")
-      .single();
+      .single<{
+        id: string;
+        email: string;
+        name: string;
+        access_status: string;
+        is_admin: boolean;
+      }>();
 
     if (error) {
       console.error("Update access error:", error);

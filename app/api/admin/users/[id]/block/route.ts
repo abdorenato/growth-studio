@@ -38,7 +38,7 @@ export async function POST(
       .from("users")
       .select("id, email")
       .eq("id", id)
-      .maybeSingle();
+      .maybeSingle<{ id: string; email: string }>();
 
     if (!target) {
       return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
