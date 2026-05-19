@@ -496,12 +496,35 @@ export default function TerritorioPage() {
                   setState((s) => ({ ...s, ancora_mental: e.target.value }))
                 }
               />
+              {(() => {
+                // Guard-rail: a âncora é uma frase curta e metafórica
+                // (1-4 palavras). Frase longa = ela vira tagline disfarçada
+                // e colide com o Posicionamento.
+                const palavras = state.ancora_mental
+                  .trim()
+                  .split(/\s+/)
+                  .filter(Boolean);
+                if (palavras.length > 4) {
+                  return (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      ⚠️ A âncora tem {palavras.length} palavras. O ideal são
+                      1-4 — ela é um conceito curto e metafórico (&ldquo;Vender
+                      é leitura&rdquo;), não uma descrição do que você faz.
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </Field>
 
             <Nav
               onBack={() => setStep(2)}
               onNext={() => setStep(4)}
-              canNext={!!state.ancora_mental.trim()}
+              canNext={
+                !!state.ancora_mental.trim() &&
+                state.ancora_mental.trim().split(/\s+/).filter(Boolean).length <=
+                  4
+              }
             />
           </CardContent>
         </Card>

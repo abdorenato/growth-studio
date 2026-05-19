@@ -30,7 +30,6 @@ function fundacaoBlock(ctx: StrategyContext, arq: Archetypes): string {
 - Energia arquetípica: ${v?.energia_arquetipica || "[não definido no material]"}
 - Tom de voz: ${v?.tom_de_voz || "[não definido no material]"}
 - Frase de essência: "${v?.frase_essencia || "[não definido no material]"}"
-- Frase de impacto: "${v?.frase_impacto || "[não definido no material]"}"
 - Palavras que usa: ${(v?.palavras_usar || []).join(", ") || "[não definido no material]"}
 - Palavras que evita: ${(v?.palavras_evitar || []).join(", ") || "[não definido no material]"}
 
@@ -79,15 +78,13 @@ ${fundacaoBlock(ctx, arq)}
 
 ═══ LÓGICA DE SÍNTESE — siga exatamente ═══
 
-A) BANDEIRA (uma frase ideológica — o que a pessoa DEFENDE)
+A) BANDEIRA (a frase ideológica — o que a pessoa DEFENDE)
 
 Distinção obrigatória:
-- A TAGLINE é a declaração principal de posicionamento. É FUNCIONAL: diz o que a pessoa FAZ e pra quem. Vem INTACTA do módulo Posicionamento. NÃO é candidata a nada. NÃO a reescreva. NÃO promova outra frase ao lugar dela.
+- A TAGLINE é a declaração principal de posicionamento. É FUNCIONAL: diz o que a pessoa FAZ e pra quem. Vem INTACTA do módulo Posicionamento.
 - A BANDEIRA é IDEOLÓGICA: diz o que a pessoa DEFENDE — a crença, a visão contrária ao mercado. Papel diferente, campo diferente.
 
-A disputa é SÓ pela Bandeira. Candidatas: frase de impacto (Voz), tese (Território), âncora mental (Território). Escolha UMA pelos critérios: mais contraintuitiva, mais curta, mais memorável, funciona como bandeira pública. As outras NÃO entram no documento. Não liste alternativas. Decida e justifique em 1 frase.
-
-Registre em "flag_source" qual foi a origem da escolhida: "frase_impacto", "tese" ou "ancora_mental".
+A Bandeira é a TESE do Território — não há disputa nem escolha. COPIE a tese do Território como Bandeira, SEM ALTERAÇÃO. Não reescreva, não comprima, não promova outra frase ao lugar dela.
 
 B) NOTA DE APOIO ("o que me move")
 A frase de essência tem função diferente da bandeira: fala de origem e motivação, não do que a pessoa defende publicamente. Ela vira a nota de apoio.
@@ -142,9 +139,7 @@ Se houver contradição, liste em "issues" (1-2 frases cada) e status "issues". 
   },
   "stance": {
     "domain": "domínio do Território",
-    "flag": "a bandeira escolhida — resultado do passo A",
-    "flag_source": "frase_impacto | tese | ancora_mental",
-    "flag_rationale": "1 frase justificando a escolha",
+    "flag": "a tese do Território, INTACTA — passo A",
     "boundaries": ["3-4 itens — o que a marca recusa"]
   },
   "audience": {
@@ -163,6 +158,7 @@ Se houver contradição, liste em "issues" (1-2 frases cada) e status "issues". 
 REGRAS DO JSON:
 - "archetype_primary" e "archetype_secondary": copie o valor recebido EXATAMENTE — lowercase, sem acento (ex: "especialista"). NÃO recapitalize.
 - "tagline": cópia literal da frase de posicionamento. Não reescreva.
+- "flag": cópia literal da tese do Território. Não reescreva.
 - "support_note": cópia literal da frase de essência. Não reescreva.
 - Sem markdown, sem texto fora do JSON.`;
 

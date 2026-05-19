@@ -14,7 +14,6 @@ export function formatStrategyContext(ctx: StrategyContext): string {
 - Energia: ${ctx.mapaVoz.energia_arquetipica}
 - Tom: ${ctx.mapaVoz.tom_de_voz}
 - Frase de essência: "${ctx.mapaVoz.frase_essencia}"
-- Frase de impacto: "${ctx.mapaVoz.frase_impacto}"
 - Palavras usadas: ${(ctx.mapaVoz.palavras_usar || []).join(", ")}
 - Palavras evitadas: ${(ctx.mapaVoz.palavras_evitar || []).join(", ")}`
     : "";

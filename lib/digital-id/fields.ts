@@ -32,11 +32,10 @@ export type FieldMeta = {
 };
 
 // ─── CAMPOS-DECISÃO ─────────────────────────────────────────────────────────
-// Apenas 3: a síntese só decide nestes pontos.
-// Bandeira depende de DOIS módulos — ela é escolhida entre frase de impacto
-// (Voz) e tese/âncora (Território).
+// Apenas 2: a síntese só decide nestes pontos.
+// (A Bandeira deixou de ser campo-decisão na decisão A1 — ela agora é a tese
+// do Território copiada intacta, sem disputa. Virou campo-espelho.)
 export const DECISION_FIELDS: FieldMeta[] = [
-  { path: "stance.flag", kind: "decisao", depends_on: ["voz", "territorio"] },
   { path: "who.relationship", kind: "decisao", depends_on: ["voz"] },
   { path: "audience.reflection", kind: "decisao", depends_on: ["icp"] },
 ];
@@ -51,6 +50,8 @@ export const MIRROR_FIELDS: FieldMeta[] = [
   { path: "voice.words_use", kind: "espelho", depends_on: ["voz"] },
   { path: "voice.words_avoid", kind: "espelho", depends_on: ["voz"] },
   { path: "stance.domain", kind: "espelho", depends_on: ["territorio"] },
+  // Bandeira = tese do Território copiada intacta (decisão A1) → espelho.
+  { path: "stance.flag", kind: "espelho", depends_on: ["territorio"] },
   { path: "stance.boundaries", kind: "espelho", depends_on: ["territorio"] },
   { path: "audience.icp_name", kind: "espelho", depends_on: ["icp"] },
   { path: "audience.pains", kind: "espelho", depends_on: ["icp"] },

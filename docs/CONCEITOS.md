@@ -65,8 +65,9 @@ A **voz** é o "sotaque" da marca. Não é o quê você fala — é **como** voc
 - Energia arquetípica
 - Tom de voz
 - Frase de essência (manifesto pessoal)
-- Frase de impacto (bandeira pública)
 - Palavras a usar / palavras a evitar
+
+> A "bandeira pública" (o que você defende) **não** mora aqui — é a tese do Território. A Voz cuida de COMO você soa; a bandeira é O QUE você defende.
 
 ---
 
@@ -151,14 +152,17 @@ Síntese de 3 escolas:
 - **Escola Americana (Ritson, Pulizzi)** — territórios ownable, content tilt
 - **Escola Digital (Godin, Calloway)** — nicho de um, conversation ownership
 
-### As 3 dimensões do território
+### As dimensões do território
 
 | Dimensão | Pergunta | Resultado |
 |----------|----------|-----------|
 | **Tema** | Sobre o quê você fala? | Domínio amplo (ex: "Vendas Consultivas B2B") |
 | **Lente** | Com qual ângulo? | A maneira única de enxergar |
-| **Manifesto** | O que você defende em 1 frase? | Bandeira pública (vira bio) |
+| **Âncora mental** | Que espaço mental você ocupa? | Frase curta e metafórica, 1-4 palavras (ex: "Vender é leitura") — não descreve o que você faz, comunica o território |
+| **Manifesto / Tese** | O que você defende em 1 frase? | Bandeira pública (vira bio) |
 | **Fronteiras** | O que você se RECUSA a falar? | Lista de "não-temas" |
+
+> **Âncora ≠ Manifesto.** A âncora é um conceito curto e metafórico que nomeia o território ("Marca é verbo"). O manifesto/tese é a crença que você defende ("Não existe vendedor nato"). A âncora também não é a tagline do Posicionamento — se ela virar uma frase que descreve o serviço, está mal feita.
 
 ### As 5 lentes do sistema
 

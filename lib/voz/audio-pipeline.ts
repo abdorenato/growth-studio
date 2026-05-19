@@ -90,7 +90,6 @@ Identifique:
   - energia_arquetipica: 1 frase descrevendo a energia combinada
   - tom_de_voz: 3-5 adjetivos
   - frase_essencia: 1 frase em 1a pessoa, idealmente PUXANDO uma frase_chave_literal real do passo 1 (mais autentico que inventar)
-  - frase_impacto: bandeira publica, direta e memoravel
   - palavras_usar: 5 palavras (priorize as palavras_frequentes do passo 1 que sao identitarias, NAO genericas tipo "tipo", "entao")
   - palavras_evitar: 3 palavras que CONTRADIZEM o arquetipo identificado
 
@@ -121,7 +120,6 @@ RESPONDA EXCLUSIVAMENTE COM JSON nesse formato:
     "energia_arquetipica": "...",
     "tom_de_voz": "...",
     "frase_essencia": "...",
-    "frase_impacto": "...",
     "palavras_usar": ["...", "...", "...", "...", "..."],
     "palavras_evitar": ["...", "...", "..."]
   },
@@ -144,7 +142,6 @@ export type VozAudioAnalysis = {
     energia_arquetipica: string;
     tom_de_voz: string;
     frase_essencia: string;
-    frase_impacto: string;
     palavras_usar: string[];
     palavras_evitar: string[];
   };

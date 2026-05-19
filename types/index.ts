@@ -30,7 +30,10 @@ export type MapaVoz = {
   energia_arquetipica: string;
   tom_de_voz: string;
   frase_essencia: string;
-  frase_impacto: string;
+  // frase_impacto: DEPRECADO — a "bandeira" agora é a tese do Território
+  // (decisão A1, docs/CONSOLIDACAO-ARTEFATOS.md). Opcional só pra
+  // retrocompat com fundações antigas que ainda têm o campo no JSONB.
+  frase_impacto?: string;
   palavras_usar: string[];
   palavras_evitar: string[];
 };

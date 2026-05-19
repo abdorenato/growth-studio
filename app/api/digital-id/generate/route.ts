@@ -22,11 +22,9 @@ import type { ArchetypeKey } from "@/types";
 // Retorna { digitalId, field_meta } — field_meta classifica cada campo
 // como espelho/decisão (metadata estatica injetada pelo codigo, nao pela IA).
 
-// Frases-fonte que entram na disputa da bandeira — expostas no GET de
-// teste pra inspecionar se a checagem de redundancia esta julgando certo.
+// Frases-fonte da fundação — expostas no GET de teste pra inspeção.
 type SourcePhrases = {
   tagline: string;
-  frase_impacto: string;
   tese: string;
   ancora_mental: string;
 };
@@ -102,7 +100,6 @@ async function generateDigitalId(
     payload: { digitalId, field_meta: buildFieldMeta() },
     sources: {
       tagline: ctx.posicionamento?.frase || "",
-      frase_impacto: ctx.mapaVoz?.frase_impacto || "",
       tese: ctx.territorio?.tese || ctx.territorio?.manifesto || "",
       ancora_mental: ctx.territorio?.ancora_mental || "",
     },

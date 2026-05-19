@@ -107,7 +107,6 @@ export async function loadAlunoContextForChat(
       blocks.push(`- Energia: ${mapaVoz.energia_arquetipica}`);
       blocks.push(`- Tom: ${mapaVoz.tom_de_voz}`);
       blocks.push(`- Frase essência: "${mapaVoz.frase_essencia}"`);
-      blocks.push(`- Frase impacto: "${mapaVoz.frase_impacto}"`);
       if (mapaVoz.palavras_usar?.length)
         blocks.push(`- Palavras a USAR: ${mapaVoz.palavras_usar.join(", ")}`);
       if (mapaVoz.palavras_evitar?.length)

@@ -262,7 +262,6 @@ export default function VozPage() {
               <Row label="Energia Arquetípica" value={mapa.energia_arquetipica} />
               <Row label="Tom de Voz" value={mapa.tom_de_voz} />
               <Row label="Frase de Essência" value={`"${mapa.frase_essencia}"`} italic />
-              <Row label="Frase de Impacto" value={`"${mapa.frase_impacto}"`} italic />
 
               <div className="grid md:grid-cols-2 gap-4 pt-2">
                 <div>

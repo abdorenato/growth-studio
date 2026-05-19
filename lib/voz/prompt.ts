@@ -37,7 +37,6 @@ RESPONDA EXCLUSIVAMENTE com JSON no formato:
     "energia_arquetipica": "1 frase descrevendo a energia combinada dos dois arquétipos",
     "tom_de_voz": "3-5 adjetivos separados por vírgula que descrevem o tom",
     "frase_essencia": "1 frase curta e poderosa, estilo manifesto pessoal, na voz do usuário (em 1ª pessoa)",
-    "frase_impacto": "1 frase que o usuário poderia dizer publicamente como bandeira, direta e memorável",
     "palavras_usar": ["palavra1", "palavra2", "palavra3", "palavra4", "palavra5"],
     "palavras_evitar": ["palavra1", "palavra2", "palavra3"]
   }

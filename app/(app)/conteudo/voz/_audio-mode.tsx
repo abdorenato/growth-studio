@@ -32,7 +32,6 @@ export type AnalysisResult = {
     energia_arquetipica: string;
     tom_de_voz: string;
     frase_essencia: string;
-    frase_impacto: string;
     palavras_usar: string[];
     palavras_evitar: string[];
   };
