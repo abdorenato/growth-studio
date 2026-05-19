@@ -89,23 +89,6 @@ A disputa é SÓ pela Bandeira. Candidatas: frase de impacto (Voz), tese (Territ
 
 Registre em "flag_source" qual foi a origem da escolhida: "frase_impacto", "tese" ou "ancora_mental".
 
-CHECAGEM DE REDUNDÂNCIA (obrigatória): depois de escolher a Bandeira, compare AS TRÊS candidatas (frase de impacto, tese, âncora mental) com a Tagline — uma a uma, vencedora E perdedoras.
-
-Critério 1 — SIGNIFICADO, não vocabulário:
-NÃO compare palavras. Compare a PROMESSA. Duas frases podem ser redundantes mesmo com verbos e palavras completamente diferentes.
-Exemplo: "Mostro o caminho mais curto" e "Revelo a rota direta" — zero palavras em comum, mesma promessa. Redundantes.
-
-Critério 2 — MESMO PAPEL (é aqui que a checagem mais erra):
-Redundância só conta quando a candidata ocupa o MESMO PAPEL FUNCIONAL da Tagline. A Tagline DECLARA um serviço — "eu faço X pra você". Uma candidata só é redundante com ela se também for uma DECLARAÇÃO do mesmo serviço/promessa.
-- Se a candidata for um ARGUMENTO ou CRENÇA — formato "você não precisa de X, precisa de Y" / "o problema não é A, é B" / "não é sobre X, é sobre Y" — ela tem papel DIFERENTE: ela DEFENDE uma visão, não DECLARA um serviço. Uma crença que justifica o serviço da tagline é COMPLEMENTAR, não redundante. É fundação saudável. NÃO registre.
-- Redundância real é duas frases NO MESMO PAPEL: duas declarações do mesmo serviço, OU duas crenças idênticas.
-Exemplo de REDUNDÂNCIA (registrar): Tagline "mostro o caminho mais curto" + candidata "revelo a rota direta" — ambas declaram o mesmo serviço.
-Exemplo de COMPLEMENTARIDADE (NÃO registrar): Tagline "mostro o caminho mais curto" + candidata "você não precisa de mais mapas, precisa de uma bússola" — uma declara serviço, a outra defende uma crença. Papéis diferentes. Saudável.
-
-Uma candidata só vira entrada de redundância se passar NOS DOIS critérios: mesma promessa (1) E mesmo papel (2).
-
-Se QUALQUER candidata for redundante com a Tagline nesse sentido, isso é um achado de fundação redundante e DEVE virar uma entrada no Diagnóstico de Coerência (passo F), identificando qual candidata e dizendo que Posicionamento e Voz/Território estão declarando a mesma coisa. Vale mesmo que a candidata redundante tenha PERDIDO a disputa — redundância de fundação é sinal estratégico, não depende de quem virou bandeira.
-
 B) NOTA DE APOIO ("o que me move")
 A frase de essência tem função diferente da bandeira: fala de origem e motivação, não do que a pessoa defende publicamente. Ela vira a nota de apoio.
 COPIE a frase de essência SEM ALTERAÇÃO. Não reescreva, não comprima, não melhore. É cópia literal.
@@ -136,12 +119,12 @@ E) COMPRESSÃO
 Comprima cada módulo aos campos do shape abaixo. Frases curtas. Sem repetir entre blocos: se algo já está na tagline, não repita como campo solto.
 
 F) DIAGNÓSTICO DE COERÊNCIA (o lint da fundação)
-Verifique contradições entre os módulos:
-- O tom de voz combina com o arquétipo?
-- O domínio do Território respeita as fronteiras?
-- A declaração de posicionamento (tagline) e a tese apontam pro mesmo lugar?
-- REDUNDÂNCIA: alguma das 3 candidatas a bandeira (frase de impacto, tese, âncora mental) é redundante com a tagline? Aplique os DOIS critérios do passo A — mesma promessa (significado, não vocabulário) E mesmo papel (uma crença que justifica o serviço é complementar, não redundante). Inclua aqui o resultado — vencedora ou perdedora, qualquer candidata que passe nos dois critérios vira uma entrada.
-Se houver contradição/redundância, liste em "issues" (1-2 frases cada) e status "issues". Se estiver tudo coerente, status "ok" e issues vazio.
+Verifique CONTRADIÇÕES entre os módulos — desalinhamentos, não repetições:
+- O tom de voz combina com o arquétipo? (ex: arquétipo Especialista mas tom motivacional vazio = contradição)
+- O domínio do Território respeita as fronteiras? (o que ele declara fazer não invade o que ele declara recusar)
+- A declaração de posicionamento (tagline) e a tese apontam pra mesma direção estratégica? (não devem se contradizer)
+NÃO avalie redundância aqui — repetição entre artefatos da fundação é tratada na origem (nos módulos Voz/Posicionamento/Território), não na síntese.
+Se houver contradição, liste em "issues" (1-2 frases cada) e status "issues". Se estiver tudo coerente, status "ok" e issues vazio.
 
 ═══ SAÍDA — responda EXCLUSIVAMENTE com JSON válido neste shape ═══
 {
