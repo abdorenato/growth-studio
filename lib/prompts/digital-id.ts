@@ -89,7 +89,7 @@ A disputa é SÓ pela Bandeira. Candidatas: frase de impacto (Voz), tese (Territ
 
 Registre em "flag_source" qual foi a origem da escolhida: "frase_impacto", "tese" ou "ancora_mental".
 
-Se a candidata escolhida for quase idêntica à Tagline (mesma ideia, mesmas palavras), registre isso no Diagnóstico de Coerência (passo F) — é sinal de fundação redundante, não erro de síntese.
+CHECAGEM DE REDUNDÂNCIA (obrigatória): depois de escolher a Bandeira, compare AS TRÊS candidatas (frase de impacto, tese, âncora mental) com a Tagline — uma a uma, vencedora E perdedoras. Se QUALQUER uma delas for quase idêntica à Tagline (mesma ideia, mesmas palavras-chave), isso é um achado de fundação redundante e DEVE virar uma entrada no Diagnóstico de Coerência (passo F), identificando qual candidata e dizendo que Posicionamento e Voz/Território estão declarando a mesma coisa. Isso vale mesmo que a candidata redundante tenha PERDIDO a disputa — redundância de fundação é sinal estratégico, não depende de quem virou bandeira.
 
 B) NOTA DE APOIO ("o que me move")
 A frase de essência tem função diferente da bandeira: fala de origem e motivação, não do que a pessoa defende publicamente. Ela vira a nota de apoio.
@@ -125,7 +125,7 @@ Verifique contradições entre os módulos:
 - O tom de voz combina com o arquétipo?
 - O domínio do Território respeita as fronteiras?
 - A declaração de posicionamento (tagline) e a tese apontam pro mesmo lugar?
-- A bandeira escolhida ficou quase idêntica à tagline? (registre como redundância)
+- REDUNDÂNCIA: alguma das 3 candidatas a bandeira (frase de impacto, tese, âncora mental) é quase idêntica à tagline? Inclua aqui o resultado da checagem de redundância do passo A — vencedora ou perdedora, qualquer candidata redundante com a tagline vira uma entrada.
 Se houver contradição/redundância, liste em "issues" (1-2 frases cada) e status "issues". Se estiver tudo coerente, status "ok" e issues vazio.
 
 ═══ SAÍDA — responda EXCLUSIVAMENTE com JSON válido neste shape ═══
