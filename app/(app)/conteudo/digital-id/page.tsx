@@ -250,12 +250,22 @@ function BrandBoard({
                   {nome}
                 </h2>
                 {arquetipos && (
-                  <p className="text-xs font-medium text-primary mt-0.5">
-                    {arquetipos}
+                  <p className="text-xs mt-1">
+                    <span className="font-bold uppercase tracking-wider text-muted-foreground">
+                      Arquétipos:{" "}
+                    </span>
+                    <span className="font-medium text-primary">
+                      {arquetipos}
+                    </span>
+                  </p>
+                )}
+                {d.who?.relationship && (
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                    {d.who.relationship}
                   </p>
                 )}
                 {d.who?.tagline && (
-                  <p className="text-sm text-muted-foreground italic mt-1">
+                  <p className="text-sm text-muted-foreground italic mt-1.5">
                     {d.who.tagline}
                   </p>
                 )}
@@ -278,10 +288,27 @@ function BrandBoard({
           {/* ── GRID 2×2 ── */}
           <div className="grid grid-cols-1 md:grid-cols-2">
             <Quadrante
+              icon="🎯"
+              titulo="O que defende"
+              cor="amber"
+              className="border-b md:border-r"
+            >
+              {d.stance?.domain && (
+                <Campo label="Domínio" valor={d.stance.domain} />
+              )}
+              {d.stance?.boundaries && d.stance.boundaries.length > 0 && (
+                <ListaCampo
+                  label="Fronteiras — o que recusa"
+                  itens={d.stance.boundaries}
+                />
+              )}
+            </Quadrante>
+
+            <Quadrante
               icon="🗣"
               titulo="Como soa"
               cor="sky"
-              className="border-b md:border-r"
+              className="border-b"
             >
               {d.voice?.tone && d.voice.tone.length > 0 && (
                 <ChipCampo label="Tom" itens={d.voice.tone} />
@@ -299,28 +326,17 @@ function BrandBoard({
             </Quadrante>
 
             <Quadrante
-              icon="🎯"
-              titulo="O que defende"
-              cor="amber"
-              className="border-b"
+              icon="💛"
+              titulo="Essência"
+              cor="emerald"
+              className="border-b md:border-r md:border-b-0"
             >
-              {d.stance?.domain && (
-                <Campo label="Domínio" valor={d.stance.domain} />
-              )}
-              {d.stance?.boundaries && d.stance.boundaries.length > 0 && (
-                <ListaCampo
-                  label="Fronteiras — o que recusa"
-                  itens={d.stance.boundaries}
-                />
+              {d.support_note && (
+                <Campo label="O que me move" valor={d.support_note} italico />
               )}
             </Quadrante>
 
-            <Quadrante
-              icon="👤"
-              titulo="Pra quem fala"
-              cor="violet"
-              className="border-b md:border-r md:border-b-0"
-            >
+            <Quadrante icon="👤" titulo="Pra quem fala" cor="violet">
               {d.audience?.icp_name && (
                 <Campo label="ICP" valor={d.audience.icp_name} />
               )}
@@ -332,15 +348,6 @@ function BrandBoard({
               )}
               {d.audience?.pains && d.audience.pains.length > 0 && (
                 <ListaCampo label="Dores principais" itens={d.audience.pains} />
-              )}
-            </Quadrante>
-
-            <Quadrante icon="💛" titulo="Relação & Essência" cor="emerald">
-              {d.who?.relationship && (
-                <Campo label="Vínculo que cria" valor={d.who.relationship} />
-              )}
-              {d.support_note && (
-                <Campo label="O que me move" valor={d.support_note} italico />
               )}
             </Quadrante>
           </div>
