@@ -60,6 +60,13 @@ export function buildNav(progress: Partial<Progress>): NavGroup[] {
           href: "/conteudo/territorio",
           locked: !progress.posicionamento,
         },
+        {
+          key: "digital-id",
+          title: "Digital ID",
+          icon: "🪪",
+          href: "/conteudo/digital-id",
+          locked: !progress.territorio,
+        },
       ],
     },
     {
