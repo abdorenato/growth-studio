@@ -96,8 +96,7 @@ export default function DigitalIdPage() {
     }
   };
 
-  // Feature em rollout — só admins por enquanto. Esconde o item no menu
-  // (sidebar) E barra acesso por URL direta aqui.
+  // Feature em rollout — só admins por enquanto.
   if (!user.is_admin) {
     return (
       <div className="space-y-6">
@@ -185,120 +184,214 @@ export default function DigitalIdPage() {
 
       {digitalId && (
         <div id="digital-id-output">
-          <DigitalIdView digitalId={digitalId} />
+          <BrandBoard
+            digitalId={digitalId}
+            avatarUrl={user.avatar_url || null}
+          />
         </div>
       )}
     </div>
   );
 }
 
-// ─── Render do documento ────────────────────────────────────────────────────
-function DigitalIdView({ digitalId: d }: { digitalId: DigitalId }) {
+// ─── BRAND BOARD ────────────────────────────────────────────────────────────
+function BrandBoard({
+  digitalId: d,
+  avatarUrl,
+}: {
+  digitalId: DigitalId;
+  avatarUrl: string | null;
+}) {
   const fullText = formatAsText(d);
+  const nome = d.who?.name || "Sua Marca";
+  const arquetipos = [d.who?.archetype_primary, d.who?.archetype_secondary]
+    .filter(Boolean)
+    .map((a) => ARQUETIPO_LABEL[a as string] || a)
+    .join(" · ");
 
   return (
-    <Card>
-      <CardContent className="p-6 space-y-6">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <h2 className="text-lg font-semibold">📄 Seu Digital ID</h2>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              navigator.clipboard.writeText(fullText);
-              toast.success("Copiado!");
-            }}
-          >
-            <Copy className="mr-2 h-4 w-4" /> Copiar tudo
-          </Button>
-        </div>
+    <div className="space-y-3">
+      <div className="flex items-center justify-end">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            navigator.clipboard.writeText(fullText);
+            toast.success("Copiado!");
+          }}
+        >
+          <Copy className="mr-2 h-4 w-4" /> Copiar tudo
+        </Button>
+      </div>
 
-        <Separator />
-
-        {/* BLOCO 1 — QUEM É */}
-        <Bloco titulo="1 · Quem é">
-          {d.who?.name && <Campo label="Nome" valor={d.who.name} />}
-          {d.who?.tagline && (
-            <Campo label="Tagline" valor={d.who.tagline} destaque />
-          )}
-          {(d.who?.archetype_primary || d.who?.archetype_secondary) && (
-            <Campo
-              label="Arquétipo"
-              valor={[d.who?.archetype_primary, d.who?.archetype_secondary]
-                .filter(Boolean)
-                .map((a) => ARQUETIPO_LABEL[a as string] || a)
-                .join(" + ")}
-            />
-          )}
-          {d.who?.relationship && (
-            <Campo label="Relação" valor={d.who.relationship} />
-          )}
-        </Bloco>
-
-        {/* BLOCO 2 — COMO SOA */}
-        <Bloco titulo="2 · Como soa">
-          {d.voice?.tone && d.voice.tone.length > 0 && (
-            <ChipCampo label="Tom" itens={d.voice.tone} />
-          )}
-          {d.voice?.words_use && d.voice.words_use.length > 0 && (
-            <ChipCampo label="Palavras que usa" itens={d.voice.words_use} />
-          )}
-          {d.voice?.words_avoid && d.voice.words_avoid.length > 0 && (
-            <ChipCampo
-              label="Palavras que evita"
-              itens={d.voice.words_avoid}
-              tom="vermelho"
-            />
-          )}
-        </Bloco>
-
-        {/* BLOCO 3 — O QUE DEFENDE */}
-        <Bloco titulo="3 · O que defende">
-          {d.stance?.domain && <Campo label="Domínio" valor={d.stance.domain} />}
-          {d.stance?.flag && (
-            <Campo label="Bandeira" valor={d.stance.flag} destaque />
-          )}
-          {d.stance?.boundaries && d.stance.boundaries.length > 0 && (
-            <ListaCampo label="Fronteiras (o que recusa)" itens={d.stance.boundaries} />
-          )}
-        </Bloco>
-
-        {/* BLOCO 4 — PRA QUEM FALA */}
-        <Bloco titulo="4 · Pra quem fala">
-          {d.audience?.icp_name && (
-            <Campo label="ICP" valor={d.audience.icp_name} />
-          )}
-          {d.audience?.icp_summary && (
-            <Campo label="Resumo" valor={d.audience.icp_summary} />
-          )}
-          {d.audience?.reflection && (
-            <Campo label="Reflexo" valor={d.audience.reflection} />
-          )}
-          {d.audience?.pains && d.audience.pains.length > 0 && (
-            <ListaCampo label="Dores principais" itens={d.audience.pains} />
-          )}
-        </Bloco>
-
-        {/* NOTA DE APOIO */}
-        {d.support_note && (
-          <div className="rounded-md border border-yellow-300/50 bg-yellow-50/50 dark:bg-yellow-950/20 p-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              💛 O que me move
-            </span>
-            <p className="text-sm mt-1.5 italic">{d.support_note}</p>
+      {/* O board inteiro num card só */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          {/* ── HEADER / IDENTIDADE ── */}
+          <div className="bg-muted/40 border-b px-6 py-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3">
+              🪪 Digital ID
+            </p>
+            <div className="flex items-center gap-4">
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarUrl}
+                  alt={nome}
+                  className="h-16 w-16 rounded-full object-cover border-2 border-background shadow-sm flex-shrink-0"
+                />
+              ) : (
+                <div className="h-16 w-16 rounded-full bg-primary/15 flex items-center justify-center text-2xl font-bold text-primary flex-shrink-0">
+                  {nome.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <h2 className="text-2xl font-bold leading-tight truncate">
+                  {nome}
+                </h2>
+                {arquetipos && (
+                  <p className="text-xs font-medium text-primary mt-0.5">
+                    {arquetipos}
+                  </p>
+                )}
+                {d.who?.tagline && (
+                  <p className="text-sm text-muted-foreground italic mt-1">
+                    {d.who.tagline}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-        )}
 
-        <Separator />
+          {/* ── HERO / BANDEIRA ── */}
+          {d.stance?.flag && (
+            <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 py-8 text-center border-b">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/70 mb-3">
+                A Bandeira — o que defendo
+              </p>
+              <p className="text-xl md:text-2xl font-bold leading-snug max-w-2xl mx-auto">
+                &ldquo;{d.stance.flag}&rdquo;
+              </p>
+            </div>
+          )}
 
-        {/* DIAGNÓSTICO DE COERÊNCIA */}
-        <CoherenceBlock check={d.coherence_check} />
-      </CardContent>
-    </Card>
+          {/* ── GRID 2×2 ── */}
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            <Quadrante
+              icon="🗣"
+              titulo="Como soa"
+              cor="sky"
+              className="border-b md:border-r"
+            >
+              {d.voice?.tone && d.voice.tone.length > 0 && (
+                <ChipCampo label="Tom" itens={d.voice.tone} />
+              )}
+              {d.voice?.words_use && d.voice.words_use.length > 0 && (
+                <ChipCampo label="Palavras que usa" itens={d.voice.words_use} />
+              )}
+              {d.voice?.words_avoid && d.voice.words_avoid.length > 0 && (
+                <ChipCampo
+                  label="Palavras que evita"
+                  itens={d.voice.words_avoid}
+                  tom="vermelho"
+                />
+              )}
+            </Quadrante>
+
+            <Quadrante
+              icon="🎯"
+              titulo="O que defende"
+              cor="amber"
+              className="border-b"
+            >
+              {d.stance?.domain && (
+                <Campo label="Domínio" valor={d.stance.domain} />
+              )}
+              {d.stance?.boundaries && d.stance.boundaries.length > 0 && (
+                <ListaCampo
+                  label="Fronteiras — o que recusa"
+                  itens={d.stance.boundaries}
+                />
+              )}
+            </Quadrante>
+
+            <Quadrante
+              icon="👤"
+              titulo="Pra quem fala"
+              cor="violet"
+              className="border-b md:border-r md:border-b-0"
+            >
+              {d.audience?.icp_name && (
+                <Campo label="ICP" valor={d.audience.icp_name} />
+              )}
+              {d.audience?.icp_summary && (
+                <Campo label="Resumo" valor={d.audience.icp_summary} />
+              )}
+              {d.audience?.reflection && (
+                <Campo label="Reflexo" valor={d.audience.reflection} />
+              )}
+              {d.audience?.pains && d.audience.pains.length > 0 && (
+                <ListaCampo label="Dores principais" itens={d.audience.pains} />
+              )}
+            </Quadrante>
+
+            <Quadrante icon="💛" titulo="Relação & Essência" cor="emerald">
+              {d.who?.relationship && (
+                <Campo label="Vínculo que cria" valor={d.who.relationship} />
+              )}
+              {d.support_note && (
+                <Campo label="O que me move" valor={d.support_note} italico />
+              )}
+            </Quadrante>
+          </div>
+
+          {/* ── RODAPÉ / COERÊNCIA ── */}
+          <CoherenceFooter check={d.coherence_check} />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
-function CoherenceBlock({
+// ─── Quadrante do grid ──────────────────────────────────────────────────────
+const COR_MAP: Record<string, string> = {
+  sky: "text-sky-600 dark:text-sky-400",
+  amber: "text-amber-600 dark:text-amber-400",
+  violet: "text-violet-600 dark:text-violet-400",
+  emerald: "text-emerald-600 dark:text-emerald-400",
+};
+
+function Quadrante({
+  icon,
+  titulo,
+  cor,
+  className,
+  children,
+}: {
+  icon: string;
+  titulo: string;
+  cor: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={"p-5 space-y-3 " + (className || "")}>
+      <div className="flex items-center gap-2">
+        <span className="text-lg">{icon}</span>
+        <h3
+          className={
+            "text-xs font-bold uppercase tracking-wider " + (COR_MAP[cor] || "")
+          }
+        >
+          {titulo}
+        </h3>
+      </div>
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function CoherenceFooter({
   check,
 }: {
   check?: { status?: "ok" | "issues"; issues?: string[] };
@@ -307,21 +400,21 @@ function CoherenceBlock({
   return (
     <div
       className={
-        "rounded-md border p-4 " +
+        "border-t px-6 py-4 " +
         (isOk
-          ? "border-emerald-300/50 bg-emerald-50/50 dark:bg-emerald-950/20"
-          : "border-amber-300/50 bg-amber-50/60 dark:bg-amber-950/20")
+          ? "bg-emerald-50/60 dark:bg-emerald-950/20"
+          : "bg-amber-50/60 dark:bg-amber-950/20")
       }
     >
       <span className="text-xs font-bold uppercase tracking-wider">
-        {isOk ? "✅ Diagnóstico de coerência" : "⚠️ Diagnóstico de coerência"}
+        {isOk ? "✅ Coerência da fundação" : "⚠️ Coerência da fundação"}
       </span>
       {isOk ? (
-        <p className="text-sm mt-1.5 text-muted-foreground">
+        <p className="text-sm mt-1 text-muted-foreground">
           Sem contradições — fundação alinhada.
         </p>
       ) : (
-        <ul className="text-sm mt-1.5 space-y-1 list-disc list-inside">
+        <ul className="text-sm mt-1 space-y-1 list-disc list-inside">
           {(check?.issues || []).map((iss, i) => (
             <li key={i}>{iss}</li>
           ))}
@@ -332,46 +425,21 @@ function CoherenceBlock({
 }
 
 // ─── Componentes de campo ───────────────────────────────────────────────────
-function Bloco({
-  titulo,
-  children,
-}: {
-  titulo: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-2.5">
-      <h3 className="text-xs font-bold uppercase tracking-wider text-primary">
-        {titulo}
-      </h3>
-      <div className="space-y-2.5">{children}</div>
-    </div>
-  );
-}
-
 function Campo({
   label,
   valor,
-  destaque,
+  italico,
 }: {
   label: string;
   valor: string;
-  destaque?: boolean;
+  italico?: boolean;
 }) {
   return (
     <div>
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
-      <p
-        className={
-          destaque
-            ? "text-base font-semibold mt-0.5"
-            : "text-sm mt-0.5"
-        }
-      >
-        {valor}
-      </p>
+      <p className={"text-sm mt-0.5 " + (italico ? "italic" : "")}>{valor}</p>
     </div>
   );
 }
@@ -441,6 +509,11 @@ function formatAsText(d: DigitalId): string {
   if (d.who?.relationship) L.push(`Relação: ${d.who.relationship}`);
   L.push("");
 
+  if (d.stance?.flag) {
+    L.push(`BANDEIRA: ${d.stance.flag}`);
+    L.push("");
+  }
+
   L.push("2 · COMO SOA");
   if (d.voice?.tone) L.push(`Tom: ${d.voice.tone.join(", ")}`);
   if (d.voice?.words_use) L.push(`Usa: ${d.voice.words_use.join(", ")}`);
@@ -449,7 +522,6 @@ function formatAsText(d: DigitalId): string {
 
   L.push("3 · O QUE DEFENDE");
   if (d.stance?.domain) L.push(`Domínio: ${d.stance.domain}`);
-  if (d.stance?.flag) L.push(`Bandeira: ${d.stance.flag}`);
   if (d.stance?.boundaries)
     L.push(`Fronteiras: ${d.stance.boundaries.join(" | ")}`);
   L.push("");
@@ -467,7 +539,8 @@ function formatAsText(d: DigitalId): string {
   }
 
   if (d.coherence_check) {
-    const ok = d.coherence_check.status === "ok" || !d.coherence_check.issues?.length;
+    const ok =
+      d.coherence_check.status === "ok" || !d.coherence_check.issues?.length;
     L.push("DIAGNÓSTICO DE COERÊNCIA");
     L.push(
       ok
