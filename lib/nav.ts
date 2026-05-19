@@ -103,6 +103,7 @@ export function buildNav(progress: Partial<Progress>): NavGroup[] {
           icon: "🎬",
           href: "/conteudo/roteiros",
           locked: !progress.icp,
+          adminOnly: true, // em rollout — só admins por enquanto
         },
       ],
     },

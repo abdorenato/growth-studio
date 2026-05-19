@@ -518,14 +518,17 @@ export default function IdeiasPage() {
                       <Button size="sm" onClick={() => handleUseIdea(idea)}>
                         Monoflow <ArrowRight className="ml-1 h-3 w-3" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleRoteiroFromIdea(idea)}
-                        title="Gerar roteiro de vídeo (Reels/TikTok)"
-                      >
-                        🎬 Roteiro
-                      </Button>
+                      {/* Roteiros de Milhões em rollout — só admins */}
+                      {user.is_admin && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleRoteiroFromIdea(idea)}
+                          title="Gerar roteiro de vídeo (Reels/TikTok)"
+                        >
+                          🎬 Roteiro
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
