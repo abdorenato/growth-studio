@@ -91,9 +91,18 @@ Registre em "flag_source" qual foi a origem da escolhida: "frase_impacto", "tese
 
 CHECAGEM DE REDUNDÂNCIA (obrigatória): depois de escolher a Bandeira, compare AS TRÊS candidatas (frase de impacto, tese, âncora mental) com a Tagline — uma a uma, vencedora E perdedoras.
 
-Critério — leia com atenção, é onde a checagem costuma falhar:
-NÃO compare vocabulário. Compare SIGNIFICADO e PROMESSA. Duas frases são redundantes se entregam essencialmente a MESMA promessa / o MESMO movimento central — MESMO que usem verbos e palavras completamente diferentes. O teste é: "se eu dissesse essas duas frases pra públicos diferentes, eles entenderiam a mesma ideia?". Se sim, é redundância.
-Exemplo de redundância que palavra-a-palavra não pega: "Mostro o caminho mais curto" e "Revelo a rota direta" — zero palavras em comum, mesma promessa exata. São redundantes.
+Critério 1 — SIGNIFICADO, não vocabulário:
+NÃO compare palavras. Compare a PROMESSA. Duas frases podem ser redundantes mesmo com verbos e palavras completamente diferentes.
+Exemplo: "Mostro o caminho mais curto" e "Revelo a rota direta" — zero palavras em comum, mesma promessa. Redundantes.
+
+Critério 2 — MESMO PAPEL (é aqui que a checagem mais erra):
+Redundância só conta quando a candidata ocupa o MESMO PAPEL FUNCIONAL da Tagline. A Tagline DECLARA um serviço — "eu faço X pra você". Uma candidata só é redundante com ela se também for uma DECLARAÇÃO do mesmo serviço/promessa.
+- Se a candidata for um ARGUMENTO ou CRENÇA — formato "você não precisa de X, precisa de Y" / "o problema não é A, é B" / "não é sobre X, é sobre Y" — ela tem papel DIFERENTE: ela DEFENDE uma visão, não DECLARA um serviço. Uma crença que justifica o serviço da tagline é COMPLEMENTAR, não redundante. É fundação saudável. NÃO registre.
+- Redundância real é duas frases NO MESMO PAPEL: duas declarações do mesmo serviço, OU duas crenças idênticas.
+Exemplo de REDUNDÂNCIA (registrar): Tagline "mostro o caminho mais curto" + candidata "revelo a rota direta" — ambas declaram o mesmo serviço.
+Exemplo de COMPLEMENTARIDADE (NÃO registrar): Tagline "mostro o caminho mais curto" + candidata "você não precisa de mais mapas, precisa de uma bússola" — uma declara serviço, a outra defende uma crença. Papéis diferentes. Saudável.
+
+Uma candidata só vira entrada de redundância se passar NOS DOIS critérios: mesma promessa (1) E mesmo papel (2).
 
 Se QUALQUER candidata for redundante com a Tagline nesse sentido, isso é um achado de fundação redundante e DEVE virar uma entrada no Diagnóstico de Coerência (passo F), identificando qual candidata e dizendo que Posicionamento e Voz/Território estão declarando a mesma coisa. Vale mesmo que a candidata redundante tenha PERDIDO a disputa — redundância de fundação é sinal estratégico, não depende de quem virou bandeira.
 
@@ -131,7 +140,7 @@ Verifique contradições entre os módulos:
 - O tom de voz combina com o arquétipo?
 - O domínio do Território respeita as fronteiras?
 - A declaração de posicionamento (tagline) e a tese apontam pro mesmo lugar?
-- REDUNDÂNCIA: alguma das 3 candidatas a bandeira (frase de impacto, tese, âncora mental) entrega a mesma promessa que a tagline? Use o critério de SIGNIFICADO do passo A (não vocabulário). Inclua aqui o resultado da checagem — vencedora ou perdedora, qualquer candidata redundante com a tagline vira uma entrada.
+- REDUNDÂNCIA: alguma das 3 candidatas a bandeira (frase de impacto, tese, âncora mental) é redundante com a tagline? Aplique os DOIS critérios do passo A — mesma promessa (significado, não vocabulário) E mesmo papel (uma crença que justifica o serviço é complementar, não redundante). Inclua aqui o resultado — vencedora ou perdedora, qualquer candidata que passe nos dois critérios vira uma entrada.
 Se houver contradição/redundância, liste em "issues" (1-2 frases cada) e status "issues". Se estiver tudo coerente, status "ok" e issues vazio.
 
 ═══ SAÍDA — responda EXCLUSIVAMENTE com JSON válido neste shape ═══
