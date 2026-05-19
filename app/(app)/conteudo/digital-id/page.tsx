@@ -96,6 +96,23 @@ export default function DigitalIdPage() {
     }
   };
 
+  // Feature em rollout — só admins por enquanto. Esconde o item no menu
+  // (sidebar) E barra acesso por URL direta aqui.
+  if (!user.is_admin) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">🪪 Digital ID</h1>
+        <Card>
+          <CardContent className="p-10 text-center">
+            <p className="text-muted-foreground">
+              Esse módulo ainda não está disponível.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (icps.length === 0) {
     return (
       <div className="space-y-6">

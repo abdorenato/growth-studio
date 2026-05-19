@@ -7,6 +7,8 @@ export type NavItem = {
   href: string;
   locked?: boolean;
   comingSoon?: boolean;
+  /** Só aparece pra admins (is_admin). Usado pra features em rollout. */
+  adminOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -66,6 +68,7 @@ export function buildNav(progress: Partial<Progress>): NavGroup[] {
           icon: "🪪",
           href: "/conteudo/digital-id",
           locked: !progress.territorio,
+          adminOnly: true, // em rollout — só admins por enquanto
         },
       ],
     },

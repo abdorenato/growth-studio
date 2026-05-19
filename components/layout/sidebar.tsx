@@ -63,7 +63,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void } = {}) {
 
   if (!user) return null;
 
-  const groups = buildNav(progress);
+  // Remove items adminOnly pra quem não é admin (features em rollout).
+  const groups = buildNav(progress).map((g) => ({
+    ...g,
+    items: g.items.filter((i) => !i.adminOnly || user.is_admin),
+  }));
 
   const handleLogout = async () => {
     // Supabase signOut + limpeza do Zustand
